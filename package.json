@@ -1,0 +1,22 @@
+{
+  "name": "linkup",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hangout planning without the group-chat chaos: plan, crew, pickups, jobs and money in one link.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "deploy": "npx wrangler deploy"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^4.162.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261113.1": true
+  }
+}
