@@ -256,16 +256,29 @@ A violet-black night palette carrying the logo's violet and lavender, with three
 
 A single phone column in a 560px wrap with a 16px gutter. Screens are a grid with 20px between blocks; sections stack with 10px gaps under a section head with an 8px bottom padding and a 1px rule. The app bar is sticky at the top; the five-tab bar is fixed at the bottom, and the page reserves 108px plus the safe-area inset beneath it.
 
-Lists are ruled, not carded: rows of 56px minimum separated by 1px rules. Cards are few: the plan card, the Needs you box, the member row and the landing's sample squad and closing call to action. Fact and fare tables are framed once (1px rule, 8px radius).
+Lists are ruled, not carded: rows of 56px minimum separated by 1px rules. Cards are few: the plan card, the Needs you box, the member row and the landing's closing call to action. Fact and fare tables are framed once (1px rule, 8px radius).
 
 **Squad Home order:** outside banner (only when relevant), plan card, Needs you (a box with a rose stroke; a one-line "all set" note when empty), member row (faces, "6 people", going/maybe/no answer), At the venue (only on the day), Getting there (cars summary), Recent activity (folded). The plan card always stays first.
 
-**Your squads** (the root page once you're in any squad): app bar with the mark and a New squad button, the "Your squads" screen title with a one-line count of what needs you, then ruled squad rows sorted by what needs you, then the soonest date. Each row: avatar, name, plan line, people line, the most urgent need in its tone colour, a rose count, and a ⋮ button that opens a menu sheet (open, share invite, plan, rename, personal link, leave, delete). First-time visitors without squads get the landing instead: headline, Start a squad and Try the demo, a sample squad built from real components, "The group chat vs Squadup" (struck-through chat lines, green-ticked answers), three numbered steps, a privacy line and a closing card.
+**Your squads** (the root page once you're in any squad): app bar with the mark and a New squad button, the "Your squads" screen title with a one-line count of what needs you, then ruled squad rows sorted by what needs you, then the soonest date. Each row: avatar, name, plan line, people line, the most urgent need in its tone colour, a rose count, and a ⋮ button that opens a menu sheet (open, share invite, plan, rename, personal link, leave, delete). First-time visitors without squads get the landing instead: headline, Start a squad and Try the demo, "The group chat vs Squadup" (struck-through chat lines, green-ticked answers), three numbered steps, a privacy line and a closing card.
 
 ### Named Rules
 **The Fold Rule.** A screen shows what most people need right now. Secondary actions and detail (add a stop, pin info, add a poll option, close or delete a poll, rough area, change pickup spot, log spending, money breakdown, recent activity) sit behind a lavender toggle with a plus icon and open in place. A toggle's open state survives live updates.
 
 **The One Rule Weight Rule.** Every divider is 1px in `rule`.
+
+## Motion
+
+Motion says "you arrived" and "that worked", then gets out of the way. Everything uses the ease-out curve; nothing bounces except the count pop.
+- **Arrival:** when you land on a screen or switch tabs, its blocks rise 12px and fade in, 60ms apart (460ms each). Squad rows, Needs-you rows and member faces follow in their own short stagger; red counts pop in last; the active tab icon gives one small hop.
+- **Landing:** a lavender wash sweeps under "group chat" in the headline. Lower sections slide in as they scroll into view, their rows one after another, and the strike-through across each group-chat line draws itself.
+- **Press:** buttons, rows and tabs scale to 97 to 98% while pressed.
+- **Folds** open with a 6px drop and fade (220ms).
+
+### Named Rules
+**The Arrival Only Rule.** Motion plays when you arrive on a screen, never on a live update. The page redraws on every change, so arrival is tracked per screen and the `enter` class is set only when the screen changes.
+
+**The Never Hidden Rule.** Anything that waits to reveal on scroll must show anyway if the observer never reports, and reduced motion shows everything at rest.
 
 ## Elevation & Depth
 

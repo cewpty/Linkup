@@ -12,7 +12,7 @@ Squadup is one link per hangout. Everyone opens it, types their name and they're
 
 ## The look
 
-Simple on purpose. Open the app and you land on **Your squads**: every squad you're in, with what needs you in each one, plus a **New squad** button and a **⋮** menu per squad (share invite, edit the plan, rename, leave, delete). First-time visitors get a landing page that shows a sample squad and how it beats the group chat.
+Simple on purpose. Open the app and you land on **Your squads**: every squad you're in, with what needs you in each one, plus a **New squad** button and a **⋮** menu per squad (share invite, edit the plan, rename, leave, delete). First-time visitors get a landing page that shows how it beats the group chat. Screens rise in when you arrive, landing sections slide in as you scroll, and buttons give a little press. Live updates never replay the motion, and it switches off for anyone who has reduced motion turned on.
 
 Inside a squad, Home opens on one **plan card**: where, when, "Are you coming?" and your ride in plain words ("Aisha is picking you up"). Right below it is **Needs you** in its own box, then how many people are in the squad and how many are going. Extra options, like adding a timetable stop, pinning info, adding a poll option or logging spending, stay folded behind a **+** toggle until you need them. It's built dark-first in the logo's violet and lavender.
 

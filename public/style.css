@@ -96,9 +96,9 @@ main.page > * { min-width: 0; }
 .empty .ico { color: var(--lav); }
 
 /* ---------- controls ---------- */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: var(--r-ctl); border: 1px solid var(--edge); background: transparent; color: var(--ink); font: 700 15px var(--ui); cursor: pointer; text-decoration: none; white-space: nowrap; transition: background 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: var(--r-ctl); border: 1px solid var(--edge); background: transparent; color: var(--ink); font: 700 15px var(--ui); cursor: pointer; text-decoration: none; white-space: nowrap; transition: background 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms, transform 120ms var(--ease-out); }
 .btn:hover { background: var(--surface-2); }
-.btn:active { background: var(--rule); }
+.btn:active { background: var(--rule); transform: scale(.97); }
 .btn.primary { background: var(--violet); border-color: var(--violet); color: #fff; }
 .btn.primary:hover { background: var(--violet-press); border-color: var(--violet-press); }
 .btn.good { background: var(--good); border-color: var(--good); color: var(--ramp-0); }
@@ -111,6 +111,8 @@ main.page > * { min-width: 0; }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
 .icon-btn { position: relative; display: inline-grid; place-items: center; width: 44px; height: 44px; flex: none; border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--ink); cursor: pointer; transition: background 140ms; }
 .icon-btn:hover { background: var(--surface-2); }
+.icon-btn:active, .seg button:active, .opt:active, .tab:active, .crew-strip:active, .need:active, .pc-ride:active, button.item:active, .sq-link:active { transform: scale(.98); }
+.icon-btn, .seg button, .opt, .tab, .crew-strip, button.need, .pc-ride, button.item, .sq-link { transition-property: background, color, border-color, transform; transition-duration: 140ms; transition-timing-function: var(--ease-out); }
 .icon-btn .count { position: absolute; top: 3px; right: 1px; }
 
 label.field { display: grid; gap: 6px; font: 600 14px var(--ui); }
@@ -182,7 +184,7 @@ button.item:hover .name { color: var(--lav); }
 /* ---------- "More" toggles: extras stay folded until asked for ---------- */
 .more-btn { justify-self: start; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 2px; border: 0; background: none; color: var(--lav); font: 600 14.5px var(--ui); cursor: pointer; }
 .more-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
-.more-body { display: grid; gap: 10px; animation: fade 180ms ease-out; }
+.more-body { display: grid; gap: 10px; animation: fold-in 220ms var(--ease-out); }
 
 /* ---------- needs-you rows ---------- */
 .need { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--rule); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; color: inherit; text-align: left; }
@@ -286,6 +288,48 @@ button.need:hover .t { color: var(--lav); }
 .sheet .block + .block { margin-top: 22px; }
 .sheet .block h3 { font: 600 14.5px var(--ui); color: var(--muted); margin-bottom: 8px; }
 @keyframes rise { from { transform: translateY(32px); opacity: 0; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(12px); } }
+@keyframes fold-in { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes pop { 0% { transform: scale(0); } 65% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes face-in { from { opacity: 0; transform: translateX(-10px) scale(.8); } }
+@keyframes tab-pop { 0% { transform: translateY(0); } 40% { transform: translateY(-3px) scale(1.08); } 100% { transform: none; } }
+@keyframes ink-in { from { background-size: 0 100%; } }
+
+/* ---------- arriving on a screen: blocks rise in one after another (only on arrival, never on live updates) ---------- */
+main.enter > :not(.reveal) { animation: rise-in 460ms var(--ease-out) both; }
+main.enter > :nth-child(2) { animation-delay: 60ms; }
+main.enter > :nth-child(3) { animation-delay: 120ms; }
+main.enter > :nth-child(4) { animation-delay: 180ms; }
+main.enter > :nth-child(5) { animation-delay: 230ms; }
+main.enter > :nth-child(n+6) { animation-delay: 270ms; }
+main.enter .sq-row { animation: rise-in 420ms var(--ease-out) both; }
+main.enter .sq-row:nth-child(1) { animation-delay: 120ms; }
+main.enter .sq-row:nth-child(2) { animation-delay: 180ms; }
+main.enter .sq-row:nth-child(3) { animation-delay: 240ms; }
+main.enter .sq-row:nth-child(n+4) { animation-delay: 290ms; }
+main.enter .needs-box .need { animation: rise-in 380ms var(--ease-out) both; }
+main.enter .needs-box .need:nth-child(1) { animation-delay: 160ms; }
+main.enter .needs-box .need:nth-child(2) { animation-delay: 210ms; }
+main.enter .needs-box .need:nth-child(n+3) { animation-delay: 260ms; }
+main.enter .count, main.enter .sq-link .count { animation: pop 420ms var(--ease-out) 320ms both; }
+main.enter .faces .av { animation: face-in 380ms var(--ease-out) both; }
+main.enter .faces .av:nth-child(1) { animation-delay: 260ms; }
+main.enter .faces .av:nth-child(2) { animation-delay: 310ms; }
+main.enter .faces .av:nth-child(3) { animation-delay: 360ms; }
+.tabbar.enter .tab[aria-current="page"] .ico { animation: tab-pop 360ms var(--ease-out); }
+/* landing hero: the highlight sweeps under "group chat" */
+.manifesto em { background: linear-gradient(var(--lav-wash), var(--lav-wash)) 0 88% / 100% 32% no-repeat; }
+main.enter .manifesto em { animation: ink-in 700ms var(--ease-out) 420ms both; }
+/* landing sections further down slide in as they scroll into view */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 560ms var(--ease-out), transform 560ms var(--ease-out); }
+.reveal.in { opacity: 1; transform: none; }
+.reveal .swaps li, .reveal .steps li { opacity: 0; transform: translateY(10px); transition: opacity 460ms var(--ease-out), transform 460ms var(--ease-out); }
+.reveal.in .swaps li, .reveal.in .steps li { opacity: 1; transform: none; }
+.reveal.in li:nth-child(2) { transition-delay: 90ms; }
+.reveal.in li:nth-child(3) { transition-delay: 180ms; }
+.reveal.in li:nth-child(4) { transition-delay: 270ms; }
+.reveal .swaps s { transition: background-size 520ms var(--ease-out) 260ms; }
+.reveal:not(.in) .swaps s { background-size: 0 1px; }
 @keyframes fade { from { opacity: 0; } }
 
 /* ---------- landing ---------- */
@@ -297,20 +341,10 @@ button.need:hover .t { color: var(--lav); }
 .landing .manifesto { margin-top: 22px; }
 .cta { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 10px; }
 .cta .btn { flex: 1 1 auto; }
-/* the sample squad: a real slice of Home, not a picture of one */
-.preview { margin: 0; display: grid; gap: 10px; }
-.preview-screen { display: grid; gap: 14px; padding: 14px; border: 1px solid var(--rule); border-radius: 18px; background: var(--bg); pointer-events: none; user-select: none; }
-.pv-bar { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
-.pv-bar .mark { width: 28px; height: 28px; }
-.pv-bar b { display: block; font-size: 15px; line-height: 1.2; }
-.pv-bar small { display: block; font-size: 12.5px; color: var(--muted); }
-.preview .plan-card { padding-bottom: 0; }
-.preview .pc-ride { cursor: default; }
-.preview .need { border-top: 0; padding: 0; }
 .swaps { display: grid; }
 .swaps li { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--rule); }
 .swaps li:first-child { border-top: 0; padding-top: 2px; }
-.swaps s { color: var(--muted); font-size: 14.5px; text-decoration-color: var(--edge); }
+.swaps s { color: var(--muted); font-size: 14.5px; text-decoration: none; background: linear-gradient(var(--edge), var(--edge)) 0 58% / 100% 1px no-repeat; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .swaps span { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; font-size: 15.5px; }
 .swaps span .ico { margin-top: 4px; color: var(--good); }
 .steps { display: grid; gap: 14px; counter-reset: step; }
@@ -367,4 +401,6 @@ a.item:hover .name { color: var(--lav); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  .reveal, .reveal li { opacity: 1 !important; transform: none !important; }
+  .reveal:not(.in) .swaps s { background-size: 100% 1px; }
 }

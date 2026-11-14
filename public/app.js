@@ -124,7 +124,7 @@
     tab: 'home', sheet: null, drafts: {},
     ui: { editPlan: false, editBudget: false, editPaid: false, crewSeg: 'people', allFeed: false, showClosed: false, pollKind: 'custom', pollN: 3, open: {} },
     es: null, ws: null, noWs: false, busy: false,
-    hub: {}, hubLoaded: false, hubGone: 0, // My squads: what each saved squad looks like right now
+    hub: {}, hubLoaded: false, hubGone: 0, viewKey: null, revealed: new Set(), // My squads: what each saved squad looks like right now
   };
   const TABS = ['home', 'plan', 'polls', 'rides', 'money'];
   const v = (key, fb = '') => (key in S.drafts ? S.drafts[key] : fb);
@@ -289,7 +289,7 @@
 
   // ================= My squads: every squad saved on this device =================
   const hubIds = () => { const all = store.all(); return Object.keys(all).filter((id) => all[id].token); };
-  async function loadHub() {
+  async function loadHub(quiet = false) {
     const all = store.all();
     await Promise.all(hubIds().map(async (id) => {
       try {
@@ -303,7 +303,7 @@
       }
     }));
     S.hubLoaded = true;
-    if (S.route === 'home') render();
+    if (S.route === 'home' && !quiet) render();
   }
   async function hubAct(id, type, params = {}, okMsg) {
     const saved = store.all()[id];
@@ -324,7 +324,15 @@
   // ================= routing =================
   async function boot() {
     const m = location.pathname.match(/^\/s\/([\w-]+)/);
-    if (!m) { S.route = 'home'; render(); if (hubIds().length) loadHub(); return; }
+    if (!m) {
+      S.route = 'home';
+      if (!hubIds().length) return render();
+      const load = loadHub(true);
+      const fast = await Promise.race([load.then(() => true), new Promise((r) => setTimeout(() => r(false), 450))]);
+      render();
+      if (!fast) load.then(render);
+      return;
+    }
     S.squadId = m[1];
     const q = new URLSearchParams(location.search);
     S.key = q.get('k');
@@ -376,6 +384,9 @@
     else if (S.route === 'join') app.innerHTML = viewJoin();
     else if (S.route === 'lost') app.innerHTML = viewLost();
     else if (S.route === 'squad' && S.data) app.innerHTML = viewSquad();
+    const viewKey = S.route === 'home' ? (hubIds().length ? 'hub' : 'landing') : S.route === 'squad' ? 'squad.' + S.tab : S.route;
+    if (viewKey !== S.viewKey) { S.viewKey = viewKey; app.querySelectorAll('main, .tabbar').forEach((e) => e.classList.add('enter')); }
+    watchReveals();
     document.body.classList.toggle('sheet-open', !!S.sheet);
     const sheetKey = S.sheet ? JSON.stringify(S.sheet) : null;
     if (focusKey) {
@@ -386,6 +397,22 @@
     }
     lastSheet = sheetKey;
     document.title = S.route === 'squad' && S.data ? `${S.data.name} · Squadup` : 'Squadup';
+  }
+
+  // Landing sections slide in once as they scroll into view.
+  // Content must never stay hidden: if the observer never reports (old browser, background tab), show everything.
+  let revealAlive = false;
+  const showAll = () => { for (const el of app.querySelectorAll('.reveal:not(.in)')) { el.classList.add('in'); S.revealed.add(el.dataset.reveal); } };
+  const revealer = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
+    revealAlive = true;
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); S.revealed.add(e.target.dataset.reveal); revealer.unobserve(e.target); }
+  }, { rootMargin: '0px 0px -8% 0px' }) : null;
+  function watchReveals() {
+    const els = app.querySelectorAll('.reveal:not(.in)');
+    if (!els.length) return;
+    if (!revealer) return showAll();
+    for (const el of els) revealer.observe(el);
+    setTimeout(() => { if (!revealAlive) showAll(); }, 1500);
   }
 
   // ---------- landing / join / lost ----------
@@ -418,22 +445,6 @@
       <p class="sub small">No accounts. You start as the Planner; friends join with your link.</p>
     </form>`;
 
-  // A small, real-looking slice of a squad's Home, so first-timers see the product before they start.
-  const landingPreview = () => `
-    <figure class="preview" aria-label="What a squad looks like">
-      <div class="preview-screen" inert aria-hidden="true">
-        <div class="pv-bar">${MARK}<span><b>Saturday bowling</b><small>6 people</small></span></div>
-        <div class="card plan-card">
-          <div class="row"><span class="tag lav">In 6 days</span><span class="tag good">${ic('lock', 'sm')}Locked in</span></div>
-          <p class="pc-venue">Strike Bowling</p>
-          <p class="pc-when">Sat · 18:30</p>
-          <div class="pc-ride">${ic('car')}<span class="grow">Your ride<b>Aisha is picking you up</b></span></div>
-        </div>
-        <div class="need bad has-acts"><span class="glyph">${ic('car')}</span><span class="t">Omar is asking you for a lift<small>Near the library · 2m ago</small></span><span class="acts"><span class="btn sm good">${ic('check', 'sm')}Accept</span><span class="btn sm">Decline</span></span></div>
-      </div>
-      <figcaption class="sub small">A sample squad. Try the real thing with the demo.</figcaption>
-    </figure>`;
-
   // ---------- landing: first visit, no squads yet ----------
   function viewLanding() {
     const swaps = [
@@ -455,14 +466,12 @@
         <p class="sub small">Free. No accounts, no passwords, no phone numbers.</p>
       </section>
 
-      ${landingPreview()}
-
-      <section class="sec" aria-labelledby="swap-h">
+      <section data-reveal="swaps" class="reveal ${S.revealed.has('swaps') ? 'in' : ''} sec" aria-labelledby="swap-h">
         <div class="sec-head"><h2 id="swap-h">The group chat vs Squadup</h2></div>
         <ul class="swaps">${swaps.map(([was, now]) => `<li><s>${esc(was)}</s><span>${ic('check', 'sm')}${esc(now)}</span></li>`).join('')}</ul>
       </section>
 
-      <section class="sec" aria-labelledby="how-h">
+      <section data-reveal="how" class="reveal ${S.revealed.has('how') ? 'in' : ''} sec" aria-labelledby="how-h">
         <div class="sec-head"><h2 id="how-h">How it works</h2></div>
         <ol class="steps">
           <li><span><b>Start a squad.</b> Name the hangout. You're the Planner.</span></li>
@@ -471,9 +480,9 @@
         </ol>
       </section>
 
-      <p class="trust">${ic('shield')}<span>Pickup spots go only to your driver and are deleted after pickup. The whole squad deletes itself a week after the hangout.</span></p>
+      <p data-reveal="trust" class="reveal ${S.revealed.has('trust') ? 'in' : ''} trust">${ic('shield')}<span>Pickup spots go only to your driver and are deleted after pickup. The whole squad deletes itself a week after the hangout.</span></p>
 
-      <section class="card end-cta">
+      <section data-reveal="end" class="reveal ${S.revealed.has('end') ? 'in' : ''} card end-cta">
         <h2 class="card-title">Got a hangout coming up?</h2>
         <button class="btn primary block" data-act="sheet" data-type="create">${ic('plus', 'sm')}Start a squad</button>
         <button class="btn block" data-act="demo">Try the demo squad</button>
