@@ -1,6 +1,6 @@
 # Squadup
 
-**Hangout planning without the group-chat chaos.**
+**Plans that don't die in the group chat.**
 
 Planning a hangout in a group chat goes like this: 20 unrelated reels, the venue buried under 300 messages, someone waiting at home for a pickup nobody saw, and two people arguing about money afterwards.
 
@@ -8,17 +8,22 @@ Squadup is one link per hangout. Everyone opens it, types their name and they're
 
 ### 👉 Live app: **https://squadup-app.pages.dev**
 
-**Try it:** open the live site and tap **"🎳 Try a demo squad"**. You land in a squad that already has five friends, a plan, cars and a budget.
+**Try it:** open the live site and tap **"Try the demo squad"**. You land in a squad that already has five friends, cars, polls and a budget. Aisha has offered you a lift, so you can try accepting a ride request straight away.
+
+## The look: "Departures"
+
+Your hangout is a trip. Home is your **boarding pass** (date, venue, your car, your seat, your pickup time, with an RSVP stub under a tear line). Rides is a **departure board**: every car has a code (SQ10, SQ11…) and its status flips letter by letter like a split-flap board when it changes (2 FREE → FULL → ON WAY → OUTSIDE). Built dark-first in the logo's violet and lavender, with signage type for the big moments.
 
 ## What it does
 
-| Tab | What's in it |
+| Where | What's in it |
 |---|---|
-| **Plan** | Your own checklist (am I going, how am I getting there, what do I owe). The plan (venue, address, date, time, notes). Voting on places and times. An info board for prices and opening hours. A feed of every change. |
-| **Crew** | Who's going, maybe or out, and who hasn't answered. Invite link. Personal link for using Squadup on a second device. |
-| **Rides** | Drivers post their seats. Riders grab a seat and share a pickup spot, typed or GPS. The driver taps **"I'm outside"**, which shows a big alert on the rider's phone and vibrates it. Riders tap **"I'm ready"** so the driver isn't left waiting. |
-| **Jobs** | Planner, Info gatherer and Treasurer roles, plus custom ones. A shared to-do list with assignees. |
-| **Money** | Same amount each, or a group target with pledges. Each person taps "I've paid", then the **treasurer confirms it**. A spending log shows where every bit of money went. |
+| **Home** | Your boarding pass, a **Needs you** list of everything waiting on you (ride requests to accept, nudges, money to bring, polls to vote on, tasks), the departure board and a log of every change. |
+| **Plan** | Venue, date, time, address, notes and a timetable. **Only the Planner can edit or lock it**; everyone else views it. An info board anyone can pin prices and links to. |
+| **Polls** | **Anyone can start a poll and vote**: where, when, or anything ("Food after?"). Anyone can add options. The Planner taps **Use** to put a winning place or time into the plan. |
+| **Rides** | **Drivers offer a lift to anyone who needs one; riders ask a driver for one. Only the person receiving the request can accept or decline.** Riders share a rough area publicly and an exact pickup spot privately with their driver. "Leaving now" with an arrival time, "I'm outside" alerts that buzz the rider's phone, and check-ins at the venue. |
+| **Money** | Same amount each, or a group target with pledges. People enter **how much they've paid**; every new amount and **every change waits for the Treasurer to confirm**. The Treasurer can confirm, reject or undo. A spending log shows where the money went. |
+| **Crew** | Who's going, roles (Planner, Treasurer, Info gatherer, custom), a shared to-do list, and private **nudges** (remind someone to RSVP, sort a ride, pay or check a task). |
 
 ### Privacy and trust rules
 - **Invite-only.** You can't see or join a squad without the secret invite link.
@@ -26,11 +31,12 @@ Squadup is one link per hangout. Everyone opens it, types their name and they're
 - **Data doesn't hang around.**
   - A pickup spot is wiped 12 hours after it's shared, even if nobody marks the pickup.
   - A whole squad deletes itself 7 days after the hangout date (or after 30 days of no activity if there's no date). Demo squads go after 2 days.
-  - The Planner can delete a squad for everyone at any time.
+  - **Only the Planner** can delete the trip for everyone, at any time.
   - A Durable Object alarm does all this on schedule, even when nobody has the app open.
 - **No request logs.** Cloudflare request logging is switched off, so member tokens never end up in logs.
 - **Money never moves through the app.** It only tracks who owes what and who has paid.
-- **Roles carry power.** Only the Planner can lock the plan or make a voted option official. Only the Treasurer can confirm payments or change the budget. Every change shows in the feed, so nobody can argue about it later.
+- **Ride requests are private.** Only the driver and the rider involved can see a request.
+- **Roles carry power.** Only the Planner can edit, lock or delete the plan, or make a poll result official. Only the Treasurer can confirm payments or change the budget. Every change shows in the log, so nobody can argue about it later.
 
 ## How it's built
 
