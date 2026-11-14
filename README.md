@@ -10,15 +10,15 @@ Squadup is one link per hangout. Everyone opens it, types their name and they're
 
 **Try it:** open the live site and tap **"Try the demo squad"**. You land in a squad that already has five friends, cars, polls and a budget. Aisha has offered you a lift, so you can try accepting a ride request straight away.
 
-## The look: "Departures"
+## The look
 
-Your hangout is a trip. Home is your **boarding pass** (date, venue, your car, your seat, your pickup time, with an RSVP stub under a tear line). Rides is a **departure board**: every car has a code (SQ10, SQ11…) and its status flips letter by letter like a split-flap board when it changes (2 FREE → FULL → ON WAY → OUTSIDE). Built dark-first in the logo's violet and lavender, with signage type for the big moments.
+Simple on purpose. Home opens on one **plan card**: where, when, "Are you coming?" and your ride in plain words ("Aisha is picking you up"). Below it is **Needs you**, then a short summary of the squad. Extra options, like adding a timetable stop, pinning info, adding a poll option or logging spending, stay folded behind a **+** toggle until you need them. It's built dark-first in the logo's violet and lavender.
 
 ## What it does
 
 | Where | What's in it |
 |---|---|
-| **Home** | Your boarding pass, a **Needs you** list of everything waiting on you (ride requests to accept, nudges, money to bring, polls to vote on, tasks), the departure board and a log of every change. |
+| **Home** | The plan card (where, when, RSVP, your ride), a **Needs you** list of everything waiting on you (ride requests to accept, nudges, money to bring, polls to vote on, tasks), a squad summary, and recent activity (folded). |
 | **Plan** | Venue, date, time, address, notes and a timetable. **Only the Planner can edit or lock it**; everyone else views it. An info board anyone can pin prices and links to. |
 | **Polls** | **Anyone can start a poll and vote**: where, when, or anything ("Food after?"). Anyone can add options. The Planner taps **Use** to put a winning place or time into the plan. |
 | **Rides** | **Drivers offer a lift to anyone who needs one; riders ask a driver for one. Only the person receiving the request can accept or decline.** Riders share a rough area publicly and an exact pickup spot privately with their driver. "Leaving now" with an arrival time, "I'm outside" alerts that buzz the rider's phone, and check-ins at the venue. |

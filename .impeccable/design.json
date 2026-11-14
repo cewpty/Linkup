@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-14T19:34:02.264Z",
+  "generatedAt": "2026-11-14T20:15:50.025Z",
   "title": "Design System: Squadup",
   "extensions": {
     "colorMeta": {
@@ -48,7 +48,7 @@
       },
       "warn": {
         "role": "tertiary",
-        "displayName": "Boarding Amber",
+        "displayName": "Amber Hold",
         "tonalRamp": [
           "#332506",
           "#5c430b",
@@ -62,7 +62,7 @@
       },
       "bad": {
         "role": "tertiary",
-        "displayName": "Outside Rose",
+        "displayName": "Alarm Rose",
         "tonalRamp": [
           "#3d0f18",
           "#661a29",
@@ -190,15 +190,15 @@
     "typographyMeta": {
       "display": {
         "displayName": "Signage (Big Shoulders Display)",
-        "purpose": "Pass date, screen and section titles, board headers. Always uppercase."
+        "purpose": "Only the landing headline, screen titles and the plan-card venue. Uppercase."
       },
       "body": {
         "displayName": "Reading (Archivo)",
-        "purpose": "Everything you read: labels, rows, copy, buttons."
+        "purpose": "Everything you read, including section heads and sheet titles in sentence case."
       },
       "data": {
-        "displayName": "Data (JetBrains Mono)",
-        "purpose": "Only times, codes, seats and money, with tabular numbers."
+        "displayName": "Numbers (JetBrains Mono)",
+        "purpose": "Only times and money, with tabular numbers."
       }
     },
     "shadows": [
@@ -212,12 +212,7 @@
       {
         "name": "ease-out",
         "value": "cubic-bezier(.16, 1, .3, 1)",
-        "purpose": "Every transition: flip, sheet rise, toast, poll fill."
-      },
-      {
-        "name": "flap-flip",
-        "value": "420ms per letter, 45ms stagger",
-        "purpose": "Split-flap status change; also on a cell's first appearance per page load."
+        "purpose": "Every transition: sheet rise, toast, poll fill, fold open."
       },
       {
         "name": "state",
@@ -228,6 +223,11 @@
         "name": "sheet-rise",
         "value": "280ms",
         "purpose": "Bottom sheet entrance."
+      },
+      {
+        "name": "fold-open",
+        "value": "180ms fade",
+        "purpose": "Content revealed by a fold toggle."
       }
     ],
     "breakpoints": [
@@ -291,20 +291,20 @@
       "css": ":host{--ramp-0:#0a0910;--bg:#0f0e14;--surface:#17151f;--surface-2:#211d2c;--rule:#2a2638;--edge:#6e6789;--ink:#f5f3fa;--muted:#aaa4bf;--violet:#7030e0;--violet-press:#5f24c4;--lav:#a19df0;--good:#5ee0a0;--warn:#f5c04e;--bad:#ff7a90} .ds-tag{display:inline-flex;align-items:center;min-height:24px;padding:2px 8px;border-radius:4px;font:600 12px \"Archivo\", system-ui, sans-serif;border:1px solid}.ds-good{color:var(--good);border-color:rgba(94,224,160,.4)}.ds-warn{color:var(--warn);border-color:rgba(245,192,78,.4)}.ds-bad{color:var(--bad);border-color:rgba(255,122,144,.45)}"
     },
     {
-      "name": "Boarding Pass",
+      "name": "Plan Card",
       "kind": "card",
-      "refersTo": "pass",
-      "description": "Signature: violet band, signage date, DEPART/CAR/SEAT fields, punched tear line.",
-      "html": "<div class=\"ds-pass\"><div class=\"ds-band\">YOU<span>In 6 days</span></div><div class=\"ds-body\"><p class=\"ds-date\">SAT 21 NOV</p><p class=\"ds-venue\">Strike Bowling <span>· 120 Market St</span></p></div><dl class=\"ds-fields\"><div><dt>DEPART</dt><dd>18:30</dd></div><div><dt>CAR</dt><dd>SQ10</dd></div><div><dt>SEAT</dt><dd>2/3</dd></div></dl><div class=\"ds-tear\"></div></div>",
-      "css": ":host{--ramp-0:#0a0910;--bg:#0f0e14;--surface:#17151f;--surface-2:#211d2c;--rule:#2a2638;--edge:#6e6789;--ink:#f5f3fa;--muted:#aaa4bf;--violet:#7030e0;--violet-press:#5f24c4;--lav:#a19df0;--good:#5ee0a0;--warn:#f5c04e;--bad:#ff7a90} .ds-pass{width:340px;border-radius:14px;background:var(--surface);color:var(--ink);overflow:hidden;box-shadow:0 22px 44px -20px rgba(0,0,0,.8),0 2px 6px rgba(0,0,0,.35)}.ds-band{display:flex;justify-content:space-between;padding:10px 14px;background:var(--violet);color:#fff;font:800 16px \"Big Shoulders Display\", \"Archivo Narrow\", sans-serif;letter-spacing:.08em}.ds-band span{font:600 12.5px \"JetBrains Mono\", ui-monospace, monospace;letter-spacing:0}.ds-body{padding:14px}.ds-date{margin:0;font:900 46px/.92 \"Big Shoulders Display\", \"Archivo Narrow\", sans-serif}.ds-venue{margin:6px 0 0;font:700 17px \"Archivo\", system-ui, sans-serif}.ds-venue span{font-weight:400;color:var(--muted)}.ds-fields{display:grid;grid-template-columns:1fr 1fr 1fr;margin:0;border-top:1px solid var(--rule)}.ds-fields div{padding:10px 14px;border-left:1px solid var(--rule)}.ds-fields div:first-child{border-left:0}.ds-fields dt{font:800 12px \"Big Shoulders Display\", \"Archivo Narrow\", sans-serif;letter-spacing:.14em;color:var(--muted)}.ds-fields dd{margin:5px 0 0;font:700 18px \"JetBrains Mono\", ui-monospace, monospace}.ds-tear{height:14px;border-top:2px dashed var(--rule);margin:0 16px}"
+      "refersTo": "card",
+      "description": "The Home hero: countdown tag, venue in Big Shoulders, date and time, lavender text links, the \"Are you coming?\" segment and a \"Your ride\" row in plain words.",
+      "html": "<section class=\"ds-card\"><span class=\"ds-tag\">In 6 days</span><h2 class=\"ds-venue\">Strike Bowling</h2><p class=\"ds-when\">Sat 21 Nov · 18:30</p><div class=\"ds-links\"><a>Maps</a><a>Calendar</a><a>Full plan</a></div><div class=\"ds-rsvp\"><span>Are you coming?</span><div class=\"ds-seg\"><button aria-pressed=\"true\">Going</button><button>Maybe</button><button>Can't</button></div></div><div class=\"ds-ride\"><small>Your ride</small><b>Aisha is picking you up</b></div></section>",
+      "css": ":host{--ramp-0:#0a0910;--bg:#0f0e14;--surface:#17151f;--surface-2:#211d2c;--rule:#2a2638;--edge:#6e6789;--ink:#f5f3fa;--muted:#aaa4bf;--violet:#7030e0;--violet-press:#5f24c4;--lav:#a19df0;--good:#5ee0a0;--warn:#f5c04e;--bad:#ff7a90} .ds-card{width:340px;display:grid;gap:6px;padding:18px 16px 8px;border-radius:14px;background:var(--surface);border:1px solid var(--rule);color:var(--ink);font:400 16px/1.5 Archivo,system-ui,sans-serif} .ds-tag{justify-self:start;padding:2px 8px;border-radius:4px;border:1px solid rgba(161,157,240,.4);color:var(--lav);font:600 12px/1.2 Archivo,sans-serif} .ds-venue{margin:4px 0 0;font:800 30px/1.02 \"Big Shoulders Display\",\"Archivo Narrow\",sans-serif;text-transform:uppercase;letter-spacing:.01em} .ds-when{margin:0;font:600 16px/1.35 Archivo,sans-serif} .ds-links{display:flex;gap:16px} .ds-links a{color:var(--lav);font:600 14.5px Archivo,sans-serif;line-height:40px} .ds-rsvp{display:grid;gap:8px;margin-top:8px;padding-top:14px;border-top:1px solid var(--rule);font:600 14.5px Archivo,sans-serif} .ds-seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--edge);border-radius:8px;overflow:hidden} .ds-seg button{min-height:44px;border:0;border-left:1px solid var(--edge);background:transparent;color:var(--muted);font:700 14.5px Archivo,sans-serif} .ds-seg button:first-child{border-left:0} .ds-seg button[aria-pressed=true]{background:var(--violet);color:#fff} .ds-ride{display:grid;margin-top:6px;padding:10px 0;border-top:1px solid var(--rule);color:var(--muted);font:400 13.5px/1.3 Archivo,sans-serif} .ds-ride b{color:var(--ink);font:700 15px/1.3 Archivo,sans-serif;margin-top:2px}"
     },
     {
-      "name": "Split-Flap Status",
-      "kind": "custom",
-      "refersTo": "flap",
-      "description": "Signature: per-letter tiles with a hinge line; flips letter by letter when status changes.",
-      "html": "<span class=\"ds-flap\"><i>O</i><i>N</i><i>&nbsp;</i><i>W</i><i>A</i><i>Y</i></span>",
-      "css": ":host{--ramp-0:#0a0910;--bg:#0f0e14;--surface:#17151f;--surface-2:#211d2c;--rule:#2a2638;--edge:#6e6789;--ink:#f5f3fa;--muted:#aaa4bf;--violet:#7030e0;--violet-press:#5f24c4;--lav:#a19df0;--good:#5ee0a0;--warn:#f5c04e;--bad:#ff7a90} .ds-flap{display:inline-flex;gap:2px;perspective:300px}.ds-flap i{position:relative;width:15px;height:24px;border-radius:3px;background:var(--ramp-0);border:1px solid var(--rule);font:800 16px/22px \"Big Shoulders Display\", \"Archivo Narrow\", sans-serif;font-style:normal;text-align:center;color:var(--good);animation:ds-flip 420ms cubic-bezier(.16,1,.3,1)}.ds-flap i:nth-child(2){animation-delay:45ms}.ds-flap i:nth-child(3){animation-delay:90ms}.ds-flap i:nth-child(4){animation-delay:135ms}.ds-flap i:nth-child(5){animation-delay:180ms}.ds-flap i:nth-child(6){animation-delay:225ms}.ds-flap i::after{content:\"\";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.65)}@keyframes ds-flip{0%{transform:rotateX(-90deg)}60%{transform:rotateX(12deg)}100%{transform:rotateX(0)}}@media (prefers-reduced-motion:reduce){.ds-flap i{animation:none}}"
+      "name": "Fold Toggle",
+      "kind": "button",
+      "refersTo": "fold-toggle",
+      "description": "Hides secondary actions until asked for. Lavender text with a plus icon that becomes a minus; content opens in place below it.",
+      "html": "<div class=\"ds-fold\"><button aria-expanded=\"true\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M5 12h14\"/></svg>Log spending</button><div class=\"ds-body\"><input placeholder=\"Lanes\"><button class=\"ds-add\">Add</button></div></div>",
+      "css": ":host{--ramp-0:#0a0910;--bg:#0f0e14;--surface:#17151f;--surface-2:#211d2c;--rule:#2a2638;--edge:#6e6789;--ink:#f5f3fa;--muted:#aaa4bf;--violet:#7030e0;--violet-press:#5f24c4;--lav:#a19df0;--good:#5ee0a0;--warn:#f5c04e;--bad:#ff7a90} .ds-fold{width:320px;display:grid;gap:10px;font:400 16px Archivo,system-ui,sans-serif;color:var(--ink)} .ds-fold>button{justify-self:start;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 2px;border:0;background:none;color:var(--lav);font:600 14.5px Archivo,sans-serif} .ds-body{display:flex;gap:8px} .ds-body input{flex:1;min-height:44px;padding:10px 12px;border-radius:8px;border:1px solid var(--edge);background:var(--ramp-0);color:var(--ink);font:16px Archivo,sans-serif} .ds-add{min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--edge);background:transparent;color:var(--ink);font:700 15px Archivo,sans-serif}"
     },
     {
       "name": "Bottom Tab Bar",
@@ -316,74 +316,72 @@
     }
   ],
   "narrative": {
-    "northStar": "Departures",
-    "overview": "Every hangout is a departure. Home is your boarding pass, Rides is a departure board, and status changes flip like split-flap letters. The system borrows its materials from travel paper and station signage rather than from app dashboards: a printed pass with a violet carrier band, perforated tear lines with punched notches, condensed uppercase signage, monospaced times and seat numbers, and a board of tiles that flip letter by letter. It is dark by design, because it is opened on phones at night, in cars and outside venues.\n\nDensity is that of a ticket, not a feed: one pass carries the answer to \"when, where, which car, which seat, am I coming\", and everything below it is a ruled list. Surfaces sit on one violet-black ramp and are separated by a single 1px rule weight; only the pass, sheets and the toast lift off the page. The logo's two colours do all the brand work: violet fills, lavender marks.\n\nThe build refuses the stock dashboard look: rounded soft cards, gradient heroes and icon-box grids do not appear anywhere.",
+    "northStar": "Plain Night",
+    "overview": "Squadup should feel as easy as the group chat it replaces. Open a squad and the first thing you see is one plan card: where, when, are you coming, and how you're getting there. Below it is a short \"Needs you\" list, then a two-line summary of the squad. Everything else is one tap away, and anything extra (adding a timetable stop, pinning info, adding a poll option, logging spending, the money breakdown, recent activity) stays folded behind a lavender toggle until someone asks for it.\n\nIt replaced the \"Departures\" look (boarding pass, departure board, split-flap letters, car codes like SQ10). Friends testing it found that look hard to use and confusing, so the metaphor is gone. The brand stays: the logo's violet and lavender on a violet-black night palette, and condensed Big Shoulders signage for the few big moments.\n\nIt is dark by design, because it is opened on phones at night, in cars and outside venues.",
     "keyCharacteristics": [
-      "One violet-black tonal ramp for every neutral, from tile black (#0a0910) to ink (#f5f3fa).",
-      "Logo violet fills primary actions, the pass band and selected segments; lavender marks codes, the active tab, focus and whatever is yours.",
-      "Three type voices with strict jobs: Big Shoulders Display for signage, Archivo for reading, JetBrains Mono for times, codes, seats and money.",
-      "One 1px rule weight; dashed 2px lines only where paper tears or a fare totals.",
-      "Split-flap tiles are the signature: status words flip in letter by letter when they change."
+      "One plan card on Home; everything else is a ruled list.",
+      "Extras are folded: an option appears only when someone taps its toggle.",
+      "One violet-black tonal ramp for every neutral, from `ramp-0` (#0a0910) to `ink` (#f5f3fa).",
+      "Logo violet fills primary actions and selected segments; lavender marks links, toggles, the active tab, focus and whatever is yours.",
+      "Big Shoulders only for the landing headline, screen titles and the venue on the plan card. Archivo for everything you read. JetBrains Mono only for times and money.",
+      "No codes, no flipping letters, no ticket shapes."
     ],
     "rules": [
       {
         "name": "The One Ramp Rule",
-        "body": "Every neutral comes from the violet-black ramp. No neutral grey from outside it, no pure black, no pure white except text on violet.",
+        "body": "Every neutral comes from the violet-black ramp.",
         "section": "colors"
       },
       {
         "name": "The Fill and Mark Rule",
-        "body": "Violet fills; lavender marks. Violet is never used as a text or line colour on the dark ground, and lavender is never a large fill (its fill use is the 12% wash and the small selected-option mark).",
+        "body": "Violet fills; lavender marks.",
         "section": "colors"
       },
       {
         "name": "The Signal Wash Rule",
-        "body": "Green, amber and rose appear as text, 1px strokes at 40 to 55% opacity, or a 12% wash. A solid signal fill is reserved for the one control or alert that resolves the moment (Accept, a ticked task check, the outside banner, the error toast, badge counts, the money meter).",
+        "body": "Green, amber and rose appear as text, 1px strokes at 40 to 55% opacity, or a 12% wash. Solid fills are only for the control or alert that resolves the moment (Accept, a ticked task, the outside banner, the error toast, badge counts, the money meter).",
         "section": "colors"
       },
       {
-        "name": "The Three Voices Rule",
-        "body": "Big Shoulders is signage and is always uppercase; Archivo is everything you read; JetBrains Mono is only for times, codes, seats and money, always with tabular numbers. A sentence never sets in mono, and a number you compare never sets in Archivo.",
+        "name": "The Few Signs Rule",
+        "body": "Big Shoulders appears in three places only: the landing headline, screen titles and the plan-card venue. Section heads, sheet titles, labels and facts are Archivo in sentence case.",
         "section": "typography"
       },
       {
-        "name": "The Signage Has No Lowercase Rule",
-        "body": "Any Big Shoulders setting is uppercase with positive tracking (0.005em at display sizes, up to 0.14em at 12px labels).",
+        "name": "The Numbers Rule",
+        "body": "Times and money use JetBrains Mono with tabular numbers. Dates and sentences never do.",
         "section": "typography"
       },
       {
-        "name": "The One Rule Weight Rule",
-        "body": "Every divider is 1px in `rule`. The only other line is a 2px dashed `rule`, and it means paper: the pass tear line and the fare total.",
+        "name": "The Fold Rule",
+        "body": "A screen shows what most people need right now. Secondary actions and detail (add a stop, pin info, add a poll option, close or delete a poll, rough area, change pickup spot, log spending, money breakdown, recent activity) sit behind a lavender toggle with a plus icon and open in place. A toggle's open state survives live updates.",
         "section": "layout"
       },
       {
-        "name": "The One Lift Rule",
-        "body": "Only the pass, sheets and the toast cast a shadow. Lists, boards, polls and fact tables are flat and framed by rules.",
-        "section": "elevation"
+        "name": "The One Rule Weight Rule",
+        "body": "Every divider is 1px in `rule`.",
+        "section": "layout"
       },
       {
         "name": "The Three Radii Rule",
-        "body": "Tiles 3px, controls 8px, the pass 14px. Anything new picks one of those; nothing gets a soft 16 to 24px card radius.",
+        "body": "Controls 8px, cards 14px, sheets 18px.",
         "section": "shapes"
       }
     ],
     "dos": [
-      "**Do** take every neutral from the ramp: `ramp-0`, `bg`, `surface`, `surface-2`, `rule`, `edge`, `muted`, `ink`.",
-      "**Do** fill only primary actions, the pass band and selected segments with Carrier Violet, and mark codes, the active tab, focus and \"yours\" with Logo Lavender.",
-      "**Do** set every time, code, seat count and amount in JetBrains Mono with tabular numbers, and every Big Shoulders setting in uppercase.",
-      "**Do** separate rows with the single 1px rule, and keep the 2px dashed line for tear lines and totals.",
-      "**Do** show a status word on the board as split-flap tiles that flip only when the status changes, and render them static under reduced motion.",
-      "**Do** strike through what is done or declined (line-through with muted colour) rather than hiding it.",
-      "**Do** keep every touch target at least 44px and focus visible as a 2px lavender outline offset 2px.",
-      "**Do** colour generated avatars with muted hues (`hsl(h 32% 34%)`) so faces never compete with the violet, and ring your own in lavender."
+      "Do answer \"where, when, am I coming, how am I getting there\" in the plan card before anything else.",
+      "Do fold secondary actions behind a lavender toggle instead of showing every form at once.",
+      "Do describe status in plain words (\"Aisha is picking you up\", \"2 free\").",
+      "Do take every neutral from the ramp and keep violet for fills, lavender for marks.",
+      "Do keep touch targets at least 44px and focus visible as a 2px lavender outline.",
+      "Do strike through what is done rather than hiding it."
     ],
     "donts": [
-      "**Don't** use rounded soft cards, gradient heroes or icon-box grids; this world is a ticket and a board, not a dashboard.",
-      "**Don't** add a shadow to anything other than the pass, a sheet or the toast.",
-      "**Don't** set sentences in mono or numbers you compare in Archivo.",
-      "**Don't** use solid green, amber or rose fills outside Accept, ticked task checks, the outside banner, the error toast, badge counts and the money meter.",
-      "**Don't** give a container any radius but 8px (controls, framed tables, polls), 14px (the pass and outside banner) or 18px (sheet tops); soft 16 to 24px card corners are out.",
-      "**Don't** add a light theme; the product is dark by design for night use."
+      "Don't bring back ticket or airport metaphors: no boarding pass, tear lines, departure board, split-flap letters or codes like SQ10 and P01.",
+      "Don't set section heads, labels or sheet titles in uppercase Big Shoulders.",
+      "Don't show a form that most people won't use on this visit; fold it.",
+      "Don't add shadows outside sheets and the toast.",
+      "Don't add a light theme; the product is dark by design for night use."
     ]
   }
 }

@@ -1,6 +1,6 @@
 ---
 name: Squadup
-description: Departures. Every hangout is a departure; your plan is a boarding pass, the rides are a departure board.
+description: Plain Night. One plan card answers where, when and your ride; everything else is a ruled list, and extras stay folded behind toggles.
 colors:
   ramp-0: "#0a0910"
   bg: "#0f0e14"
@@ -22,6 +22,7 @@ colors:
   bad-wash: "rgba(255, 122, 144, .12)"
   scrim: "rgba(5, 4, 9, .72)"
   on-violet: "#ffffff"
+  placeholder: "#8f88a6"
 typography:
   display:
     fontFamily: "Big Shoulders Display, Archivo Narrow, sans-serif"
@@ -29,12 +30,12 @@ typography:
     fontWeight: 900
     lineHeight: 0.9
     letterSpacing: "0.005em"
-  pass-date:
+  plan-venue:
     fontFamily: "Big Shoulders Display, Archivo Narrow, sans-serif"
-    fontSize: "46px"
-    fontWeight: 900
-    lineHeight: 0.92
-    letterSpacing: "0.005em"
+    fontSize: "30px"
+    fontWeight: 800
+    lineHeight: 1.02
+    letterSpacing: "0.01em"
   headline:
     fontFamily: "Big Shoulders Display, Archivo Narrow, sans-serif"
     fontSize: "40px"
@@ -42,23 +43,15 @@ typography:
     lineHeight: 0.95
     letterSpacing: "0.01em"
   sheet-title:
-    fontFamily: "Big Shoulders Display, Archivo Narrow, sans-serif"
-    fontSize: "28px"
-    fontWeight: 800
-    lineHeight: 1
-    letterSpacing: "0.02em"
-  section:
-    fontFamily: "Big Shoulders Display, Archivo Narrow, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "21px"
-    fontWeight: 800
-    lineHeight: 1.1
-    letterSpacing: "0.03em"
-  field-label:
-    fontFamily: "Big Shoulders Display, Archivo Narrow, sans-serif"
-    fontSize: "12px"
-    fontWeight: 800
-    lineHeight: 1
-    letterSpacing: "0.14em"
+    fontWeight: 700
+    lineHeight: 1.2
+  section:
+    fontFamily: "Archivo, system-ui, sans-serif"
+    fontSize: "17px"
+    fontWeight: 700
+    lineHeight: 1.25
   title:
     fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "17px"
@@ -86,24 +79,27 @@ typography:
     lineHeight: 1.1
     letterSpacing: "0em"
     fontFeature: "tnum"
-  code:
+  amount:
     fontFamily: "JetBrains Mono, ui-monospace, monospace"
-    fontSize: "13px"
+    fontSize: "30px"
     fontWeight: 700
-    letterSpacing: "0.02em"
+    lineHeight: 1.1
+    fontFeature: "tnum"
 rounded:
-  tile: "3px"
   tag: "4px"
   ctl: "8px"
   avatar: "10px"
-  pass: "14px"
+  card: "14px"
   sheet: "18px"
   pill: "9px"
+  check: "7px"
+  mark: "5px"
+  pip: "2px"
 spacing:
   xs: "4px"
   sm: "8px"
   md: "12px"
-  pass: "14px"
+  card: "16px"
   gutter: "16px"
   page: "20px"
   xl: "28px"
@@ -159,28 +155,20 @@ components:
     rounded: "{rounded.tag}"
     padding: "2px 8px"
     height: "24px"
-  pass:
+  card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.pass}"
-  pass-band:
-    backgroundColor: "{colors.violet}"
-    textColor: "{colors.on-violet}"
-    padding: "10px 14px"
-  board-row:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.ink}"
-    padding: "10px 12px"
-  flap-tile:
-    backgroundColor: "{colors.ramp-0}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.tile}"
-    width: "15px"
-    height: "24px"
+    rounded: "{rounded.card}"
+    padding: "16px"
+  fold-toggle:
+    backgroundColor: "transparent"
+    textColor: "{colors.lav}"
+    typography: "{typography.body-sm}"
+    height: "44px"
   outside-banner:
     backgroundColor: "{colors.bad}"
     textColor: "{colors.ramp-0}"
-    rounded: "{rounded.pass}"
+    rounded: "{rounded.card}"
     padding: "18px 14px"
   toast:
     backgroundColor: "{colors.ink}"
@@ -193,192 +181,150 @@ components:
 
 ## Overview
 
-**Creative North Star: "Departures"**
+**Creative North Star: "Plain Night"**
 
-Every hangout is a departure. Home is your boarding pass, Rides is a departure board, and status changes flip like split-flap letters. The system borrows its materials from travel paper and station signage rather than from app dashboards: a printed pass with a violet carrier band, perforated tear lines with punched notches, condensed uppercase signage, monospaced times and seat numbers, and a board of tiles that flip letter by letter. It is dark by design, because it is opened on phones at night, in cars and outside venues.
+Squadup should feel as easy as the group chat it replaces. Open a squad and the first thing you see is one plan card: where, when, are you coming, and how you're getting there. Below it is a short "Needs you" list, then a two-line summary of the squad. Everything else is one tap away, and anything extra (adding a timetable stop, pinning info, adding a poll option, logging spending, the money breakdown, recent activity) stays folded behind a lavender toggle until someone asks for it.
 
-Density is that of a ticket, not a feed: one pass carries the answer to "when, where, which car, which seat, am I coming", and everything below it is a ruled list. Surfaces sit on one violet-black ramp and are separated by a single 1px rule weight; only the pass, sheets and the toast lift off the page. The logo's two colours do all the brand work: violet fills, lavender marks.
+It replaced the "Departures" look (boarding pass, departure board, split-flap letters, car codes like SQ10). Friends testing it found that look hard to use and confusing, so the metaphor is gone. The brand stays: the logo's violet and lavender on a violet-black night palette, and condensed Big Shoulders signage for the few big moments.
 
-The build refuses the stock dashboard look: rounded soft cards, gradient heroes and icon-box grids do not appear anywhere.
+It is dark by design, because it is opened on phones at night, in cars and outside venues.
 
 **Key Characteristics:**
-- One violet-black tonal ramp for every neutral, from tile black (#0a0910) to ink (#f5f3fa).
-- Logo violet fills primary actions, the pass band and selected segments; lavender marks codes, the active tab, focus and whatever is yours.
-- Three type voices with strict jobs: Big Shoulders Display for signage, Archivo for reading, JetBrains Mono for times, codes, seats and money.
-- One 1px rule weight; dashed 2px lines only where paper tears or a fare totals.
-- Split-flap tiles are the signature: status words flip in letter by letter when they change.
+- One plan card on Home; everything else is a ruled list.
+- Extras are folded: an option appears only when someone taps its toggle.
+- One violet-black tonal ramp for every neutral, from `ramp-0` (#0a0910) to `ink` (#f5f3fa).
+- Logo violet fills primary actions and selected segments; lavender marks links, toggles, the active tab, focus and whatever is yours.
+- Big Shoulders only for the landing headline, screen titles and the venue on the plan card. Archivo for everything you read. JetBrains Mono only for times and money.
+- No codes, no flipping letters, no ticket shapes.
 
 ## Colors
 
 A violet-black night palette carrying the logo's violet and lavender, with three signal colours that appear mostly as text, strokes and 12% washes.
 
 ### Primary
-- **Carrier Violet** (`violet`): the logo's deep violet. Fills primary buttons, the boarding-pass carrier band, the selected RSVP segment, checkbox accents and text selection. White text on it reads at 6.6:1. Pressed and hover state is **Pressed Violet** (`violet-press`).
+- **Logo Violet** (`violet`): fills primary buttons, the selected segment (RSVP, ride choice), checkbox accents and text selection. White text on it reads at 6.6:1. Hover and press go to `violet-press`.
 
 ### Secondary
-- **Logo Lavender** (`lav`): marks rather than fills. Car and poll codes, timetable times, the active tab and its dot, focus outlines, links, the caret, empty-state and note glyphs, the ring around your own avatar and your own car code, selected poll options. **Lavender Wash** (`lav-wash`) tints poll result bars, owner authority strips and incoming requests.
+- **Logo Lavender** (`lav`): marks rather than fills. Links, toggles, plan-card links, the active tab and its dot, focus outlines, the caret, glyphs in notes and lists, timetable times, the ring around your own avatar, selected poll options. **Lavender Wash** (`lav-wash`) tints poll result bars, owner authority strips and incoming requests.
 
 ### Tertiary (signals)
-- **Go Green** (`good`): confirmed, accepted, paid, winner, at the venue. Solid only on the Accept button and the confirmed segment of the money meter.
-- **Amber Hold** (`warn`): pending, asked, offered, waiting for the Treasurer. Pending pass fields turn amber.
-- **Alarm Rose** (`bad`): declined, overdue, still needs a lift, and the "driver is outside" banner, which is its one solid fill besides badge counts.
-- Each has a 12% wash (`good-wash`, `warn-wash`, `bad-wash`) for notes and poll winners.
+- **Go Green** (`good`): confirmed, accepted, paid, winner, at the venue, "Locked in".
+- **Amber Hold** (`warn`): pending, waiting for the Treasurer, "Draft".
+- **Alarm Rose** (`bad`): declined, still needs a lift, badge counts, and the "driver is outside" banner.
+- Each has a 12% wash for notes and poll winners.
 
 ### Neutral
-- **Tile Black** (`ramp-0`): split-flap tiles, inputs, poll options, the board frame, fare total row, punched holes and dark text on signal fills.
-- **Night** (`bg`): the page, the app bar and the tab bar.
-- **Pass Stock** (`surface`): the pass, board rows, sheets, polls, fact and fare rows.
-- **Raised Stock** (`surface-2`): hover fills, quiet counts, scrollbar thumb.
-- **Rule** (`rule`): every divider, row border and tile edge. Decorative only.
-- **Edge** (`edge`): boundaries of controls (buttons, inputs, segments, steppers, checkboxes), 3:1 against surfaces.
-- **Faded Ink** (`muted`): secondary text, field labels, inactive tabs.
+- **Ramp 0** (`ramp-0`): inputs, poll options, the money meter track, the fare total row, dark text on signal fills.
+- **Night** (`bg`): the page, app bar and tab bar.
+- **Surface** (`surface`): the plan card, the start form, polls, fact and fare rows, sheets.
+- **Raised** (`surface-2`): hover fills, quiet counts, scrollbar thumb.
+- **Rule** (`rule`): every divider and row border.
+- **Edge** (`edge`): control boundaries, 3:1 against surfaces.
+- **Muted** (`muted`): secondary text, labels, inactive tabs.
 - **Ink** (`ink`): primary text; also the toast background.
-- **Scrim** (`scrim`): behind sheets.
 
 ### Named Rules
-**The One Ramp Rule.** Every neutral comes from the violet-black ramp. No neutral grey from outside it, no pure black, no pure white except text on violet.
+**The One Ramp Rule.** Every neutral comes from the violet-black ramp.
 
-**The Fill and Mark Rule.** Violet fills; lavender marks. Violet is never used as a text or line colour on the dark ground, and lavender is never a large fill (its fill use is the 12% wash and the small selected-option mark).
+**The Fill and Mark Rule.** Violet fills; lavender marks.
 
-**The Signal Wash Rule.** Green, amber and rose appear as text, 1px strokes at 40 to 55% opacity, or a 12% wash. A solid signal fill is reserved for the one control or alert that resolves the moment (Accept, a ticked task check, the outside banner, the error toast, badge counts, the money meter).
+**The Signal Wash Rule.** Green, amber and rose appear as text, 1px strokes at 40 to 55% opacity, or a 12% wash. Solid fills are only for the control or alert that resolves the moment (Accept, a ticked task, the outside banner, the error toast, badge counts, the money meter).
 
 ## Typography
 
-**Display Font:** Big Shoulders Display (weights 700, 800, 900; fallback Archivo Narrow, sans-serif)
-**Body Font:** Archivo (weights 400 to 800; fallback system-ui)
-**Label/Mono Font:** JetBrains Mono (weights 500, 700; fallback ui-monospace)
-
-**Character:** condensed station signage over a sturdy grotesque, with a monospace that reads like a printed timetable. The signage shouts in uppercase; the grotesque explains; the mono only ever carries numbers and codes.
+**Display Font:** Big Shoulders Display (700 to 900; fallback Archivo Narrow)
+**Body Font:** Archivo (400 to 800; fallback system-ui)
+**Number Font:** JetBrains Mono (500, 700; fallback ui-monospace)
 
 ### Hierarchy
-- **Display** (900, 52px, 0.9, uppercase): the landing manifesto only; its emphasised phrase turns lavender. Drops to 44px under 370px.
-- **Pass Date** (900, 46px, 0.92, uppercase): the date on the boarding pass. Drops to 40px under 370px.
-- **Headline** (800, 40px, 0.95, uppercase): screen titles.
-- **Sheet Title** (800, 28px, 1, uppercase): bottom-sheet titles.
-- **Section** (800, 21px, 1.1, 0.03em, uppercase): section heads over a 1px rule, such as "Needs you".
-- **Field Label** (800, 12 to 14px, 0.14em, uppercase, muted): pass field names (DEPART, CAR, SEAT), board column heads, fact labels, the pass stub question. Big-value pass fields that hold words use Big Shoulders at 21px.
-- **Title** (Archivo 700, 17px, 1.3): poll questions, venue line on the pass.
-- **Body** (Archivo 400, 16px, 1.5): default text. Secondary text is 14.5px muted, meta lines 13 to 13.5px. Lead paragraphs cap at 34 to 40ch.
+- **Display** (900, 52px, uppercase): the landing headline only. 44px under 370px.
+- **Headline** (800, 40px, uppercase): screen titles (Rides, Polls, Money).
+- **Plan Venue** (800, 30px, uppercase): the venue on the Home plan card. 26px under 370px.
+- **Sheet Title** (Archivo 700, 21px): bottom-sheet titles.
+- **Section** (Archivo 700, 17px, sentence case): section heads over a 1px rule, such as "Needs you".
+- **Title** (Archivo 700, 17px): poll questions, card titles.
+- **Body** (Archivo 400, 16px, 1.5). Secondary 14.5px muted, meta 13.5px muted.
 - **Label** (Archivo 700, 15px; 14px small; tabs 600 12px): buttons, segments, row names.
-- **Data** (JetBrains Mono 700, 15 to 22px, tabular numbers): times, seat counts, fares, totals, poll counts, the pass band countdown.
-- **Code** (JetBrains Mono 700, 13px, 0.02em, lavender): car codes (SQ1) and poll codes.
+- **Amount** (JetBrains Mono 700, 30px, tabular): the budget figure. Other times and amounts use mono at 14.5 to 18px.
 
 ### Named Rules
-**The Three Voices Rule.** Big Shoulders is signage and is always uppercase; Archivo is everything you read; JetBrains Mono is only for times, codes, seats and money, always with tabular numbers. A sentence never sets in mono, and a number you compare never sets in Archivo.
+**The Few Signs Rule.** Big Shoulders appears in three places only: the landing headline, screen titles and the plan-card venue. Section heads, sheet titles, labels and facts are Archivo in sentence case.
 
-**The Signage Has No Lowercase Rule.** Any Big Shoulders setting is uppercase with positive tracking (0.005em at display sizes, up to 0.14em at 12px labels).
+**The Numbers Rule.** Times and money use JetBrains Mono with tabular numbers. Dates and sentences never do.
 
 ## Layout
 
-A single phone column. Content sits in a 560px max-width wrap with a 16px gutter, centred on wider screens. Each screen is a grid with 20px between blocks; sections stack with 10px internal gaps under a section head with an 8px bottom padding and a 1px rule. The app bar (60px min) is sticky at the top on Night with a bottom rule; the five-tab bar (62px tabs) is fixed at the bottom with a top rule, and the page reserves 108px plus the safe-area inset beneath it. Both respect safe-area insets.
+A single phone column in a 560px wrap with a 16px gutter. Screens are a grid with 20px between blocks; sections stack with 10px gaps under a section head with an 8px bottom padding and a 1px rule. The app bar is sticky at the top; the five-tab bar is fixed at the bottom, and the page reserves 108px plus the safe-area inset beneath it.
 
-Lists are ruled, not carded: rows of 56px minimum separated by 1px rules, first row without a top rule. Tables of facts, fares, timetables and boards are framed once (1px rule, 8px radius) with rows separated by inner rules. Two-up form rows collapse to one column under 370px. Above 700px the bottom sheet becomes a centred 540px dialog 24px off the bottom.
+Lists are ruled, not carded: rows of 56px minimum separated by 1px rules. The plan card and the landing's start form are the only cards. Fact and fare tables are framed once (1px rule, 8px radius).
 
-Spacing steps observed in use: 4, 8, 12, 14 (pass padding), 16 (gutter), 20 (page gap), 28 (landing gap).
+**Home order:** outside banner (only when relevant), plan card, Needs you, At the venue (only on the day), The squad (two summary rows), Recent activity (folded).
 
 ### Named Rules
-**The One Rule Weight Rule.** Every divider is 1px in `rule`. The only other line is a 2px dashed `rule`, and it means paper: the pass tear line and the fare total.
+**The Fold Rule.** A screen shows what most people need right now. Secondary actions and detail (add a stop, pin info, add a poll option, close or delete a poll, rough area, change pickup spot, log spending, money breakdown, recent activity) sit behind a lavender toggle with a plus icon and open in place. A toggle's open state survives live updates.
+
+**The One Rule Weight Rule.** Every divider is 1px in `rule`.
 
 ## Elevation & Depth
 
-Mostly flat tonal layering: Night under Pass Stock under Raised Stock, separated by rules. A single lift shadow exists for objects that are physically handed to you.
-
-### Shadow Vocabulary
-- **Lift** (`box-shadow: 0 22px 44px -20px rgba(0,0,0,.8), 0 2px 6px rgba(0,0,0,.35)`): the boarding pass, bottom sheets and the toast.
-- **Your ring** (`box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--lav)`): your own avatar. Your car code on the board gets the same idea as a 1.5px lavender outline offset 3px.
-- **Input focus halo** (`box-shadow: 0 0 0 3px var(--lav-wash)` with a lavender border).
-- **Beacon** (`0 0 0 7px var(--bad-wash)`, pulsing every 1.4s): only the "driver is outside" banner.
-
-### Named Rules
-**The One Lift Rule.** Only the pass, sheets and the toast cast a shadow. Lists, boards, polls and fact tables are flat and framed by rules.
+Flat tonal layering: Night under Surface under Raised, separated by rules.
+- **Lift** (`0 22px 44px -20px rgba(0,0,0,.8), 0 2px 6px rgba(0,0,0,.35)`): sheets and the toast only.
+- **Your ring** (`0 0 0 2px var(--bg), 0 0 0 3.5px var(--lav)`): your own avatar, including your car in the cars list.
+- **Input focus halo**: lavender border with a 3px lavender-wash halo.
+- **Beacon** (pulsing 7px rose wash): only the "driver is outside" banner.
 
 ## Shapes
 
-Small, deliberate radii that echo printed and mechanical objects: 3px split-flap tiles, 4px tags (square-ish like printed codes), 8px controls and framed tables, 10px avatars (rounded squares, 8px at small size), 14px for the pass and the outside banner, 18px for sheet tops. Counts are 9px pills; the active-tab marker and poll radio marks are circles; multi-select marks are 5px squares; seat pips are 10 by 14px with 2px corners.
-
-The pass is the one silhouette with cut-outs: a 2px dashed tear line inset 16px from each side, with 22px circular notches in Night punched out of both edges.
+4px tags, 8px controls and framed tables, 10px avatars (8px small), 14px for the plan card, the start form and the outside banner, 18px sheet tops. Counts are 9px pills; poll radio marks are circles and multi-select marks 5px squares; task checks 7px; seat pips 2px.
 
 ### Named Rules
-**The Three Radii Rule.** Tiles 3px, controls 8px, the pass 14px. Anything new picks one of those; nothing gets a soft 16 to 24px card radius.
+**The Three Radii Rule.** Controls 8px, cards 14px, sheets 18px.
 
 ## Components
 
 ### Buttons
-Solid, compact, confident. Archivo 700 15px, 44px tall.
-- **Shape:** gently squared (8px).
-- **Primary:** Carrier Violet fill and border, white text, 0 16px padding. Hover and press to Pressed Violet.
-- **Secondary (default):** transparent with a 1px Edge border, Ink text; hover fills Raised Stock, active fills Rule.
-- **Good:** Go Green fill with Tile Black text, for Accept; hover dims to 92% brightness.
-- **Quiet:** no border, muted text that turns Ink on hover.
-- **Danger:** Alarm Rose text and a 55% rose border.
-- **Small:** 40px tall, 0 12px, 14px text. **Disabled:** 40% opacity.
-- **Icon button:** 44px square, transparent, Raised Stock on hover, with an optional count badge.
-- Transitions are 140ms on the house ease-out.
+Archivo 700 15px, 44px tall, 8px radius. Primary is violet with white text; secondary is a 1px Edge outline; Good is green with dark text (Accept); Quiet is borderless muted text; Danger is rose text with a rose border. Small is 40px. Disabled is 40% opacity.
 
-### Segmented control (RSVP)
-A single 1px Edge frame (8px) split into equal 44px cells by 1px Edge dividers. Unselected cells are muted text; hover goes Ink on Raised Stock; the selected cell fills Carrier Violet with white text.
+### Fold toggle
+A borderless lavender text button (Archivo 600 14.5px, 44px tall) with a 16px plus icon that becomes a minus when open, with `aria-expanded` set. Its content appears directly below with a 180ms fade.
 
-### Chips / Tags
-- **Style:** 24px tall, 4px radius, 1px Rule border, Archivo 600 12px, muted text.
-- **Tones:** lavender, green, amber or rose text with the matching 40 to 45% border. No fills.
-- **Counts:** 18px rose pills with Tile Black mono 11px numbers; the quiet count is Raised Stock with Ink.
+### Plan card
+Surface card (14px radius, 1px rule, no shadow). From top: a countdown tag and a "Locked in" tag; the venue in Plan Venue type; the date and time in Archivo 600 16px; lavender text links (Maps, Calendar, Full plan); a ruled "Are you coming?" segment; and a ruled "Your ride" row that says where your ride stands in plain words and opens Rides.
 
-### Cards / Containers
-- **Corner Style:** 8px for framed tables, polls and notes; 14px only for the pass.
-- **Background:** Pass Stock on Night; option rows and the board frame in Tile Black.
-- **Shadow Strategy:** flat, except the pass (Lift).
-- **Border:** 1px Rule.
-- **Internal Padding:** 12px (14px for polls and the pass).
-- **Notes:** 12px padded, Pass Stock with a Rule border and a lavender glyph; tone variants swap to a 12% wash with no border.
+### Segmented control
+One 1px Edge frame split into equal 44px cells. Selected fills violet with white text.
 
-### Inputs / Fields
-- **Style:** Tile Black field, 1px Edge border, 8px radius, 44px tall, 10px 12px padding, 16px text. Date and time inputs set in JetBrains Mono 15px.
-- **Focus:** border turns lavender with a 3px lavender-wash halo; 140ms.
-- **Labels:** Archivo 600 14px above the field, with a muted 13px hint.
-- **Stepper:** Edge-framed pair of 44px buttons around a mono 17px value.
+### Tags and counts
+24px tall, 4px radius, 1px rule border, Archivo 600 12px. Tone variants change text and border colour, never fill. Counts are 18px rose pills.
 
-### Navigation
-- **App bar:** logo mark (32px), squad name (Archivo 700 16px) over a muted 13px venue and time line, crew and menu icon buttons.
-- **Tab bar:** five equal tabs, 23px stroke icon over a 600 12px label, muted at rest, Ink on hover, lavender when current with a 4px lavender dot 4px above the bottom edge. Count badges sit top right of the icon.
-- **Icons:** one authored stroke family, 24px grid, 2px stroke, round caps and joins, `currentColor`; 16, 20 and 24px sizes.
-
-### Boarding Pass (signature)
-The Home hero. A Pass Stock ticket (14px radius, Lift) with a violet carrier band (logo mark on a Tile Black chip, the member's name in Big Shoulders 800 16px at 0.08em, countdown in mono), a Pass Date headline and venue line, a three-column field row (DEPART / CAR / SEAT, ratios 1.1 : 1.3 : 0.9, divided by 1px rules) with mono values or Big Shoulders words, the punched tear line, and a stub holding the "Coming?" RSVP segment and small secondary actions. Pending values (an offered car, an asked seat) turn amber with a trailing question mark.
-
-### Departure Board and Split-Flap (signature)
-A Tile Black frame (1px Rule, 8px) with a field-label header row and Pass Stock rows on a 44px / flexible / auto grid: lavender car code, driver name over muted riders, and a split-flap status cell. Your row rings its code in lavender. Each flap letter is a 15 by 24px Tile Black tile (3px, 1px Rule) with a dark hairline across its middle, Big Shoulders 800 16px, coloured by tone (lavender, green, amber, rose). When a status changes, and once when a cell first appears on page load, tiles flip in from rotateX(-90deg) with a brief brightness flash, 420ms each on the house ease-out, staggered 45ms per letter; a redraw mid-flip resumes rather than restarts, and finished cells revert to static tiles.
+### Lists and the cars list
+Ruled rows: avatar, name over a muted meta line, then a tag or action. The cars list shows each driver with their riders and a plain status tag (2 free, Full, On way, Outside, Arrived).
 
 ### Needs-you rows
-Ruled rows with a 24px tone-coloured glyph, a 700 15px title over a muted 13.5px sub-line, and either a chevron (navigates; the title turns lavender on hover) or an inline action row indented 36px.
+Ruled rows with a 24px tone glyph, a 700 15px title over a muted sub-line, and either a chevron or inline actions.
 
 ### Poll options
-50px Tile Black rows with an Edge border and a round mark (square for multi-select), a lavender-wash result bar growing behind the text over 420ms, and a mono count. Selected: lavender border plus an inset 1px lavender ring, filled lavender mark. Winner: green border and green wash.
+50px rows with an Edge border, a round or square mark, a lavender-wash result bar and a mono count. Selected: lavender border and filled mark. Winner: green.
 
-### Fare table
-Framed rows of Archivo 600 15px labels and mono 18px tabular amounts; the total row sits on Tile Black under a 2px dashed rule with a Big Shoulders label and a 22px amount. Below it, a 10px meter splits green (confirmed) and amber (waiting).
+### Money
+The budget amount in mono, one line of context, a 10px meter (green confirmed, amber waiting), and one sentence: "X of Y collected". The full breakdown table is folded.
 
-### Outside banner
-Full-width Alarm Rose block (14px radius), Tile Black Big Shoulders 900 26px uppercase, with the Beacon pulse. It appears only when your driver says they are outside.
-
-### Sheets and toast
-Bottom sheets on Pass Stock with 18px top corners, a 40 by 4px Edge grabber, a Sheet Title head and Lift; they rise 32px over 280ms over the Scrim. The toast is an inverted Ink block (8px) with Night text, rising 14px over 260ms; errors turn rose.
+### Outside banner, sheets and toast
+The outside banner is a full-width rose block with the Beacon. Sheets rise from the bottom on Surface with an Archivo title. The toast is an inverted Ink block.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** take every neutral from the ramp: `ramp-0`, `bg`, `surface`, `surface-2`, `rule`, `edge`, `muted`, `ink`.
-- **Do** fill only primary actions, the pass band and selected segments with Carrier Violet, and mark codes, the active tab, focus and "yours" with Logo Lavender.
-- **Do** set every time, code, seat count and amount in JetBrains Mono with tabular numbers, and every Big Shoulders setting in uppercase.
-- **Do** separate rows with the single 1px rule, and keep the 2px dashed line for tear lines and totals.
-- **Do** show a status word on the board as split-flap tiles that flip only when the status changes, and render them static under reduced motion.
-- **Do** strike through what is done or declined (line-through with muted colour) rather than hiding it.
-- **Do** keep every touch target at least 44px and focus visible as a 2px lavender outline offset 2px.
-- **Do** colour generated avatars with muted hues (`hsl(h 32% 34%)`) so faces never compete with the violet, and ring your own in lavender.
+- **Do** answer "where, when, am I coming, how am I getting there" in the plan card before anything else.
+- **Do** fold secondary actions behind a lavender toggle instead of showing every form at once.
+- **Do** describe status in plain words ("Aisha is picking you up", "2 free").
+- **Do** take every neutral from the ramp and keep violet for fills, lavender for marks.
+- **Do** keep touch targets at least 44px and focus visible as a 2px lavender outline.
+- **Do** strike through what is done rather than hiding it.
 
 ### Don't:
-- **Don't** use rounded soft cards, gradient heroes or icon-box grids; this world is a ticket and a board, not a dashboard.
-- **Don't** add a shadow to anything other than the pass, a sheet or the toast.
-- **Don't** set sentences in mono or numbers you compare in Archivo.
-- **Don't** use solid green, amber or rose fills outside Accept, ticked task checks, the outside banner, the error toast, badge counts and the money meter.
-- **Don't** give a container any radius but 8px (controls, framed tables, polls), 14px (the pass and outside banner) or 18px (sheet tops); soft 16 to 24px card corners are out.
+- **Don't** bring back ticket or airport metaphors: no boarding pass, tear lines, departure board, split-flap letters or codes like SQ10 and P01.
+- **Don't** set section heads, labels or sheet titles in uppercase Big Shoulders.
+- **Don't** show a form that most people won't use on this visit; fold it.
+- **Don't** add shadows outside sheets and the toast.
 - **Don't** add a light theme; the product is dark by design for night use.

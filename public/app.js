@@ -1,5 +1,5 @@
 /* Squadup front end: plain JS, no build step.
-   World: "Departures". Home is your boarding pass, Rides is a departure board.
+   Plain and quiet: one plan card on Home, the rest one tap away. Extras sit behind "More" toggles.
    Tabs: Home · Plan · Polls · Rides · Money, plus a Crew page and bottom sheets. */
 (() => {
   'use strict';
@@ -116,41 +116,20 @@
   const ic = (name, cls = '') => `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[name] || P.dot}</svg>`;
   const MARK = '<img class="mark" src="/brand/mark.png" alt="" width="32" height="32">';
 
-  // ================= split-flap (the signature move) =================
-  // A status cell remembers what it showed and when that changed; for a moment after a change it
-  // flips letter by letter. A redraw mid-flip resumes the animation where it was (negative delay)
-  // instead of restarting or cutting it off.
-  const flapMemory = {};
-  const FLIP_MS = 900;
-  // The first time a cell appears on this page load it flips in too (the board "arriving"),
-  // so the signature move shows on the first screen anyone sees.
-  function flap(key, text, tone = '') {
-    const t = String(text).toUpperCase();
-    const now = performance.now();
-    const m = flapMemory[key];
-    if (!m) flapMemory[key] = { t, at: now };
-    else if (m.t !== t) flapMemory[key] = { t, at: now };
-    const elapsed = now - flapMemory[key].at;
-    const flip = elapsed < FLIP_MS;
-    return `<span class="flap ${tone} ${flip ? 'flip' : ''}" role="img" aria-label="${esc(text)}"${flip ? ` style="--e:${Math.round(elapsed)}ms"` : ''}>${[...t].map((c, i) => `<i style="--i:${i}" aria-hidden="true">${c === ' ' ? '&nbsp;' : esc(c)}</i>`).join('')}</span>`;
-  }
-  // Once the last letter lands, the cell goes back to plain static tiles, so nothing
-  // (a screen recorder, a capture, a tab coming back) can replay it from mid-flip.
-  document.addEventListener('animationend', (e) => {
-    if (e.animationName !== 'flapflip') return;
-    const cell = e.target.parentElement;
-    if (cell && e.target === cell.lastElementChild) { cell.classList.remove('flip'); cell.style.removeProperty('--e'); }
-  });
-
   // ================= state =================
   const S = {
     route: 'home', squadId: null, key: null, token: null, preview: null, data: null,
     tab: 'home', sheet: null, drafts: {},
-    ui: { editPlan: false, editBudget: false, editPaid: false, crewSeg: 'people', allFeed: false, showClosed: false, pollKind: 'custom', pollN: 3 },
+    ui: { editPlan: false, editBudget: false, editPaid: false, crewSeg: 'people', allFeed: false, showClosed: false, pollKind: 'custom', pollN: 3, open: {} },
     es: null, ws: null, noWs: false, busy: false,
   };
   const TABS = ['home', 'plan', 'polls', 'rides', 'money'];
   const v = (key, fb = '') => (key in S.drafts ? S.drafts[key] : fb);
+  // Extra options stay folded away until someone asks for them. The open state lives in S.ui
+  // (not <details>) so live re-renders don't snap it shut.
+  const more = (k, label, inner) => `
+    <button type="button" class="more-btn" data-act="more" data-k="${esc(k)}" aria-expanded="${!!S.ui.open[k]}">${ic(S.ui.open[k] ? 'minus' : 'plus', 'sm')}${label}</button>
+    ${S.ui.open[k] ? `<div class="more-body">${inner}</div>` : ''}`;
   const clearDrafts = (prefix) => { for (const k of Object.keys(S.drafts)) if (k.startsWith(prefix)) delete S.drafts[k]; };
 
   // ================= derived data =================
@@ -161,7 +140,6 @@
     const rolesHeld = (id) => d.roles.filter((r) => r.holderId === id).map((r) => r.name);
     const counted = d.members.filter((m) => m.status !== 'out');
     const drivers = d.members.filter((m) => m.ride.mode === 'driving' && m.status !== 'out').sort((a, b) => a.joinedAt - b.joinedAt);
-    const carCode = (m) => `SQ${10 + drivers.findIndex((x) => x.id === m.id)}`;
     const ridersOf = (id) => d.members.filter((m) => m.ride.mode === 'need' && m.ride.driverId === id);
     const freeSeats = (m) => m.ride.seats - ridersOf(m.id).length;
     const isWaiting = (m) => m.status !== 'out' && m.ride.mode !== 'driving' && m.ride.mode !== 'self' && !m.ride.driverId;
@@ -175,14 +153,12 @@
     const conf = (m) => m.confirmedAmt || 0;
     const pending = (m) => (m.paid === 'sent' ? m.paidAmt - conf(m) : 0);
     const cur = (n) => (Number(n) < 0 ? '-' : '') + esc(d.currency) + Math.abs(Number(n || 0)).toLocaleString(undefined, { maximumFractionDigits: 2 });
-    const pollsByAge = d.polls.slice().sort((a, b) => a.at - b.at);
-    const pollCode = (p) => `P${String(pollsByAge.indexOf(p) + 1).padStart(2, '0')}`;
     const openPolls = d.polls.filter((p) => !p.closed);
     const voted = (p) => p.options.some((o) => o.votes.includes(d.me));
     const unvoted = openPolls.filter((p) => !voted(p));
     const planner = roleOf('Planner'), treasurer = roleOf('Treasurer');
     const myTasks = d.tasks.filter((t) => !t.done && t.assigneeId === d.me);
-    // a car's line on the departure board
+    // a car's status in the cars list
     const carStatus = (m) => {
       const riders = ridersOf(m.id);
       if (m.arrived) return ['Arrived', 'good'];
@@ -191,7 +167,7 @@
       if (freeSeats(m) <= 0) return ['Full', 'warn'];
       return [`${freeSeats(m)} free`, 'lav'];
     };
-    return { byId, me, roleOf, rolesHeld, counted, drivers, carCode, ridersOf, freeSeats, isWaiting, waiting, undecided, receiver, incoming, outgoing, reqBetween, owes, conf, pending, cur, pollCode, openPolls, voted, unvoted, planner, treasurer, myTasks, carStatus };
+    return { byId, me, roleOf, rolesHeld, counted, drivers, ridersOf, freeSeats, isWaiting, waiting, undecided, receiver, incoming, outgoing, reqBetween, owes, conf, pending, cur, openPolls, voted, unvoted, planner, treasurer, myTasks, carStatus };
   }
 
   const NUDGE_TEXT = { rsvp: 'say if you\'re coming', ride: 'sort out your ride', pay: 'hand over your money', task: 'check your to-do' };
@@ -211,7 +187,7 @@
       for (const [kind, names] of Object.entries(groups)) out.push({ tone: 'warn', icon: 'bell', title: `${esc([...new Set(names)].join(', '))} nudged you to ${NUDGE_TEXT[kind]}`, sub: 'Only you can see this', acts: `<button class="btn sm quiet" data-act="clearNudges">Dismiss</button>` });
     }
     if (me.status !== 'out') {
-      if (!me.ride.mode) out.push({ tone: 'warn', icon: 'car', title: 'How are you getting there?', sub: 'Drive, get picked up, or make your own way', go: 'rides' });
+      if (!me.ride.mode && !x.incoming.length) out.push({ tone: 'warn', icon: 'car', title: 'How are you getting there?', sub: 'Drive, get picked up, or make your own way', go: 'rides' });
       else if (me.ride.mode === 'need' && !me.ride.driverId) {
         const asked = x.outgoing.some((q) => q.riderId === me.id);
         out.push({ tone: 'warn', icon: 'hand', title: asked ? 'Waiting for a driver to answer' : 'You still need a lift', sub: asked ? 'You asked for a seat' : `${plural(x.drivers.filter((m) => x.freeSeats(m) > 0).length, 'car')} with free seats`, go: 'rides' });
@@ -385,14 +361,14 @@
         <h1 class="manifesto" style="margin-top:22px">Plans that don't die in the <em>group chat</em>.</h1>
         <p class="lead">One link for the plan, the polls, who's picking up who, and who's actually paid.</p>
       </section>
-      <section class="board board-demo" aria-label="How a squad works">
-        <div class="board-row"><div class="who"><b><span class="code">PLAN</span> The Planner locks it in</b><small>Everyone else just views it</small></div>${flap('demo-plan', 'Locked', 'lav')}</div>
-        <div class="board-row"><div class="who"><b><span class="code">RIDES</span> Ask for a lift, or get offered one</b><small>They say yes or no</small></div>${flap('demo-rides', 'Asked', 'warn')}</div>
-        <div class="board-row"><div class="who"><b><span class="code">MONEY</span> The Treasurer confirms payments</b><small>No "I already paid you" fights</small></div>${flap('demo-money', 'Paid', 'good')}</div>
-      </section>
-      <section class="pass">
-        <div class="pass-band"><img src="/brand/mark.png" alt="" width="26" height="26"><span class="carrier">Start a squad</span></div>
-        <form class="form pass-body" data-form="create">
+      <ul class="points" aria-label="How a squad works">
+        <li>${ic('crown')}<span><b>The Planner locks the plan.</b> Everyone else just views it.</span></li>
+        <li>${ic('car')}<span><b>Ask for a lift, or get offered one.</b> They say yes or no.</span></li>
+        <li>${ic('money')}<span><b>The Treasurer confirms payments.</b> No "I already paid you" fights.</span></li>
+      </ul>
+      <section class="card">
+        <h2 class="card-title">Start a squad</h2>
+        <form class="form" data-form="create">
           <label class="field">What's the hangout?
             <input type="text" name="name" data-keep="create.name" value="${esc(v('create.name'))}" placeholder="Saturday bowling" maxlength="60" required>
           </label>
@@ -409,8 +385,10 @@
           <button class="btn primary block">Create squad</button>
           <p class="sub small">No accounts. You start as the Planner; friends join with your link.</p>
         </form>
-        <div class="tear"></div>
-        <div class="pass-stub"><span class="sub">Just looking? Open a squad with friends, cars, polls and a budget already in it.</span><button class="btn block" data-act="demo">Try the demo squad</button></div>
+      </section>
+      <section class="demo-cta">
+        <button class="btn block" data-act="demo">Try the demo squad</button>
+        <p class="sub small">Just looking? It comes with friends, cars, polls and a budget already in it.</p>
       </section>
       ${mine.length ? `<section class="sec"><div class="sec-head"><h2>Your squads</h2></div><div class="list">
         ${mine.map(([id, x]) => `<a class="item" href="/s/${esc(id)}" style="text-decoration:none;color:inherit">${av(x.name || '?', 'sm')}<div class="grow"><div class="name">${esc(x.name || 'Squad')}</div></div>${ic('chev')}</a>`).join('')}
@@ -426,7 +404,7 @@
         <h1 class="manifesto" style="margin-top:22px">You're on the list for <em>${esc(p.name)}</em></h1>
         <p class="lead">${p.members.length ? esc(p.members.slice(0, 6).join(', ')) + (p.members.length > 6 ? ` and ${p.members.length - 6} more` : '') + ' already joined.' : 'Be the first in.'}</p>
       </section>
-      <section class="pass"><form class="form pass-body" data-form="join">
+      <section class="card"><form class="form" data-form="join">
         <label class="field">Your name
           <input type="text" name="name" data-keep="join.name" value="${esc(v('join.name'))}" placeholder="What do your friends call you?" maxlength="30" required autofocus autocomplete="given-name">
         </label>
@@ -473,99 +451,96 @@
     ? `<button class="need ${n.tone}" data-act="tab" data-tab="${n.go}" ${n.seg ? `data-seg="${n.seg}"` : ''}><span class="glyph">${ic(n.icon)}</span><span class="t">${n.title}<small>${n.sub || ''}</small></span><span class="chev">${ic('chev')}</span></button>`
     : `<div class="need ${n.tone} has-acts"><span class="glyph">${ic(n.icon)}</span><span class="t">${n.title}<small>${n.sub || ''}</small></span><span class="acts">${n.acts || ''}</span></div>`;
 
-  function boardRows(d, x, compact) {
+  function carList(d, x) {
     if (!x.drivers.length) return `<p class="empty">${ic('car')}<span>No cars yet.${x.me.ride.mode ? '' : ' Driving? Say so on Rides.'}</span></p>`;
-    return `<div class="board" role="list">
-      <div class="board-head" aria-hidden="true"><span>Car</span><span>Driver, riders</span><span>Status</span></div>
+    return `<div class="list">
       ${x.drivers.map((m) => {
         const riders = x.ridersOf(m.id);
         const [st, tone] = x.carStatus(m);
         const mine = m.id === d.me || riders.some((r) => r.id === d.me);
-        return `<div class="board-row ${mine ? 'mine' : ''}" role="listitem">
-          <span class="code">${x.carCode(m)}</span>
-          <div class="who"><b>${esc(m.name)}${m.id === d.me ? youTag(m, d.me) : mine ? ' · your car' : ''}</b><small>${riders.length ? esc(riders.map((r) => r.name).join(', ')) : 'No riders yet'}${!compact && m.ride.eta && m.ride.driverState === 'onway' ? ` · ETA ${fmtClock(m.ride.etaAt + m.ride.eta * 60000)}` : ''}</small></div>
-          ${flap('car-' + m.id, st, tone)}
+        return `<div class="item">
+          ${av(m.name, 'sm', mine)}
+          <div class="grow"><div class="name">${esc(m.name)}${m.id === d.me ? youTag(m, d.me) : mine ? ' · your car' : ''}</div>
+            <div class="meta">${riders.length ? esc(riders.map((r) => r.name).join(', ')) : 'No riders yet'}${m.ride.eta && m.ride.driverState === 'onway' ? ` · arriving ${fmtClock(m.ride.etaAt + m.ride.eta * 60000)}` : ''}</div></div>
+          <span class="tag ${tone}">${esc(st)}</span>
         </div>`;
       }).join('')}
     </div>`;
   }
 
-  // ---------- HOME: your boarding pass ----------
+  // One line saying where your ride stands, for the plan card.
+  function rideLine(d, x) {
+    const me = x.me, r = me.ride;
+    if (me.status === 'out') return 'Not needed';
+    if (r.mode === 'driving') return `You're driving · ${x.ridersOf(me.id).length} of ${r.seats} seats taken`;
+    if (r.mode === 'self') return 'Making your own way';
+    if (r.mode === 'need' && r.driverId) {
+      const dr = x.byId[r.driverId];
+      if (r.riderState === 'picked') return `In ${esc(dr?.name)}'s car`;
+      return `${esc(dr?.name)} is picking you up${dr && dr.ride.driverState === 'onway' && dr.ride.eta ? `, around ${fmtClock(dr.ride.etaAt + dr.ride.eta * 60000)}` : ''}`;
+    }
+    const offer = x.incoming.find((q) => q.kind === 'invite');
+    if (offer) return `${esc(x.byId[offer.driverId]?.name)} offered you a lift`;
+    const asked = x.outgoing.find((q) => q.kind === 'ask' && q.riderId === me.id);
+    if (asked) return `Waiting for ${esc(x.byId[asked.driverId]?.name)} to answer`;
+    return r.mode === 'need' ? 'You still need a lift' : 'Not sorted yet';
+  }
+
+  // ---------- HOME: the plan, then what needs you ----------
   function tabHome(d, x, needs) {
-    const me = x.me, p = d.plan, r = me.ride;
+    const me = x.me, p = d.plan;
     const days = daysUntil(p.date);
     const going = d.members.filter((m) => m.status === 'going');
+    const maybe = d.members.filter((m) => m.status === 'maybe');
+    const noAnswer = d.members.filter((m) => !m.status);
     const arrived = d.members.filter((m) => m.arrived);
     const showCheckin = me.status !== 'out' && days !== null && days <= 0 && days >= -1;
-    const feed = d.activity.slice().reverse().slice(0, S.ui.allFeed ? 40 : 5);
-    let depart = p.time ? fmtTime(p.time) : '--:--', car = '—', seat = '—';
-    if (r.mode === 'driving') { car = x.carCode(me); seat = `${x.ridersOf(me.id).length}/${r.seats}`; }
-    else if (r.mode === 'need' && r.driverId) {
-      const dr = x.byId[r.driverId];
-      car = dr ? dr.name : '—';
-      const riders = dr ? x.ridersOf(dr.id) : [];
-      seat = dr ? `${riders.findIndex((m) => m.id === me.id) + 1}/${dr.ride.seats}` : '—';
-      if (dr && dr.ride.driverState === 'onway' && dr.ride.eta) depart = fmtClock(dr.ride.etaAt + dr.ride.eta * 60000);
-    } else if (r.mode === 'self') car = 'Own way';
-    else {
-      // a pending request shows on the pass, so accepting visibly fills it in
-      const offer = x.incoming.find((q) => q.kind === 'invite');
-      const asked = x.outgoing.find((q) => q.kind === 'ask' && q.riderId === me.id);
-      const q = offer || asked;
-      if (q) { car = `${x.byId[q.driverId]?.name || '?'}?`; seat = offer ? 'Offer' : 'Asked'; }
-      else if (r.mode === 'need') car = 'Needed';
-    }
-    const pending = /\?$/.test(car);
-    const carIsText = !/^SQ\d+$/.test(car) && car !== '—';
-    const seatIsText = /^[A-Za-z]/.test(seat);
+    const feed = d.activity.slice().reverse().slice(0, S.ui.allFeed ? 40 : 6);
+    const mapHref = p.address || p.venue ? (/^https?:\/\//.test(p.address) ? esc(p.address) : mapsUrl(p.address || p.venue)) : '';
 
     return `
     ${outsideBanner(d, x)}
-    <section class="pass" aria-label="Your pass for ${esc(d.name)}">
-      <div class="pass-band"><img src="/brand/mark.png" alt="" width="26" height="26"><span class="carrier">${esc(me.name)}</span><span class="when">${p.date ? countdown(days) : 'Date TBC'}</span></div>
-      <div class="pass-body">
-        <p class="pass-date">${p.date ? esc(fmtDate(p.date)) : 'Date TBC'}</p>
-        <p class="pass-venue">${p.venue ? esc(p.venue) : 'Venue not set'}${p.address ? ` <span>· ${esc(p.address)}</span>` : ''}</p>
+    <section class="card plan-card" aria-label="The plan">
+      <div class="row wrap-row">${p.date ? `<span class="tag lav">${countdown(days)}</span>` : ''}${p.locked ? `<span class="tag good">${ic('lock', 'sm')}Locked in</span>` : ''}</div>
+      <h2 class="pc-venue">${p.venue ? esc(p.venue) : 'Where? Not decided yet'}</h2>
+      <p class="pc-when">${p.date || p.time ? esc(fmtWhen(p.date, p.time)) : 'When? Not decided yet'}</p>
+      <div class="pc-links">
+        ${mapHref ? `<a href="${mapHref}" target="_blank" rel="noopener">${ic('pin', 'sm')}Maps</a>` : ''}
+        ${p.date ? `<button type="button" data-act="ics">${ic('download', 'sm')}Calendar</button>` : ''}
+        <button type="button" data-act="tab" data-tab="plan">Full plan${ic('chev', 'sm')}</button>
       </div>
-      <dl class="pass-fields">
-        <div><dt>Depart</dt><dd class="data">${esc(depart)}</dd></div>
-        <div><dt>Car</dt><dd class="${carIsText ? 'txt' : 'data'} ${pending ? 'pending' : ''}">${esc(car)}</dd></div>
-        <div><dt>Seat</dt><dd class="${seatIsText ? 'txt' : 'data'} ${pending ? 'pending' : ''}">${esc(seat)}</dd></div>
-      </dl>
-      <div class="tear"></div>
-      <div class="pass-stub">
-        <span class="q" id="rsvp-q">Coming?</span>
+      <div class="pc-rsvp">
+        <span id="rsvp-q">Are you coming?</span>
         <div class="seg" role="group" aria-labelledby="rsvp-q">${[['going', 'Going'], ['maybe', 'Maybe'], ['out', 'Can\'t']].map(([k, l]) => `<button data-act="status" data-v="${k}" aria-pressed="${me.status === k}">${l}</button>`).join('')}</div>
-        <div class="pass-actions">
-          ${p.date ? `<button class="btn sm" data-act="ics">${ic('download', 'sm')}Calendar</button>` : `<button class="btn sm" data-act="tab" data-tab="polls">${ic('polls', 'sm')}Vote on a date</button>`}
-          ${p.address || p.venue ? `<a class="btn sm" href="${/^https?:\/\//.test(p.address) ? esc(p.address) : mapsUrl(p.address || p.venue)}" target="_blank" rel="noopener">${ic('pin', 'sm')}Maps</a>` : ''}
-          <button class="btn sm quiet" data-act="tab" data-tab="plan">Plan details${ic('chev', 'sm')}</button>
-        </div>
       </div>
+      <button class="pc-ride" data-act="tab" data-tab="rides">${ic('car')}<span class="grow">Your ride<b>${rideLine(d, x)}</b></span>${ic('chev')}</button>
     </section>
 
     <section class="sec" aria-labelledby="needs-h">
-      <div class="sec-head"><h2 id="needs-h">Needs you</h2><span class="side">${needs.length ? plural(needs.length, 'thing') : 'all clear'}</span></div>
-      ${needs.length ? `<div>${needs.map(needRow).join('')}</div>` : `<p class="empty">${ic('check')}<span>Nothing is waiting on you.</span></p>`}
+      <div class="sec-head"><h2 id="needs-h">Needs you</h2>${needs.length ? `<span class="count">${needs.length}</span>` : ''}</div>
+      ${needs.length ? `<div>${needs.map(needRow).join('')}</div>` : `<p class="empty">${ic('check')}<span>You're all set. Nothing is waiting on you.</span></p>`}
     </section>
 
     ${showCheckin ? `
     <section class="sec">
-      <div class="sec-head"><h2>At the venue</h2><span class="side">${arrived.length}/${going.length} here</span></div>
+      <div class="sec-head"><h2>At the venue</h2><span class="side">${arrived.length} of ${going.length} here</span></div>
       ${me.arrived ? `<div class="note good">${ic('check')}<span>You checked in ${ago(me.arrived)} ago.</span></div><button class="btn sm quiet" data-act="arrived" data-v="false">Undo check-in</button>`
         : `<button class="btn primary block" data-act="arrived" data-v="true">${ic('flag')}I'm here</button>`}
       ${arrived.length ? `<div class="row wrap-row">${arrived.map((m) => `<span class="tag good">${esc(m.name)}</span>`).join('')}</div>` : ''}
     </section>` : ''}
 
-    <section class="sec" aria-labelledby="dep-h">
-      <div class="sec-head"><h2 id="dep-h">Departures</h2><button class="btn sm quiet" data-act="tab" data-tab="rides">Rides${ic('chev', 'sm')}</button></div>
-      ${boardRows(d, x, true)}
-      <p class="sub small">${going.length} going · ${d.members.filter((m) => m.status === 'maybe').length} maybe · ${d.members.filter((m) => !m.status).length} haven't answered${x.waiting.length ? ` · <span style="color:var(--bad)">${x.waiting.length} still need a lift</span>` : ''}</p>
+    <section class="sec" aria-labelledby="squad-h">
+      <div class="sec-head"><h2 id="squad-h">The squad</h2></div>
+      <div class="list">
+        <button class="item" data-act="tab" data-tab="crew" data-seg="people">${ic('crew')}<span class="grow"><span class="name" style="display:block">${going.length} going</span><span class="meta" style="display:block">${maybe.length} maybe · ${noAnswer.length} haven't answered</span></span>${ic('chev')}</button>
+        <button class="item" data-act="tab" data-tab="rides">${ic('car')}<span class="grow"><span class="name" style="display:block">${plural(x.drivers.length, 'car')}</span><span class="meta" style="display:block">${x.waiting.length ? `<span style="color:var(--bad)">${x.waiting.length} still ${x.waiting.length === 1 ? 'needs' : 'need'} a lift</span>` : 'Everyone who needs a lift has one'}</span></span>${ic('chev')}</button>
+      </div>
     </section>
 
-    <section class="sec" aria-labelledby="log-h">
-      <div class="sec-head"><h2 id="log-h">Log</h2>${d.activity.length > 5 ? `<button class="btn sm quiet" data-act="allFeed">${S.ui.allFeed ? 'Less' : 'Everything'}</button>` : ''}</div>
-      <ul class="log">${feed.map((a) => `<li><span class="when">${ago(a.at)}</span><span>${esc(a.text)}</span></li>`).join('')}</ul>
+    <section class="sec">
+      ${more('log', 'Recent activity', `
+        <ul class="log">${feed.map((a) => `<li><span class="when">${ago(a.at)}</span><span>${esc(a.text)}</span></li>`).join('')}</ul>
+        ${d.activity.length > 6 ? `<button class="btn sm quiet" data-act="allFeed">${S.ui.allFeed ? 'Show less' : 'Show everything'}</button>` : ''}`)}
     </section>`;
   }
 
@@ -589,7 +564,7 @@
       </form>` : `
       <dl class="facts">
         <div><dt>What</dt><dd class="big">${p.venue ? esc(p.venue) : '<span class="muted">Not set</span>'}</dd></div>
-        <div><dt>When</dt><dd class="data">${p.date || p.time ? esc(fmtWhen(p.date, p.time)) : '<span class="muted">Not set</span>'}</dd></div>
+        <div><dt>When</dt><dd class="strong">${p.date || p.time ? esc(fmtWhen(p.date, p.time)) : '<span class="muted">Not set</span>'}</dd></div>
         <div><dt>Where</dt><dd>${p.address ? `${esc(p.address)}<br><a href="${/^https?:\/\//.test(p.address) ? esc(p.address) : mapsUrl(p.address)}" target="_blank" rel="noopener">Open in Maps</a>` : '<span class="muted">No address yet</span>'}</dd></div>
         <div><dt>Who</dt><dd>${d.members.filter((m) => m.status === 'going').length} going, ${d.members.filter((m) => m.status === 'maybe').length} maybe</dd></div>
         ${p.notes ? `<div><dt>Notes</dt><dd class="wrap-text">${esc(p.notes)}</dd></div>` : ''}
@@ -600,31 +575,30 @@
         <button class="btn ${p.locked ? '' : 'primary'}" data-act="lock" data-v="${!p.locked}">${ic(p.locked ? 'unlock' : 'lock', 'sm')}${p.locked ? 'Reopen' : 'Lock it in'}</button>
       </div>` : ''}`;
     return `
-    <div class="screen-head"><div><h2>The plan</h2><p>${p.locked ? 'Locked in. This is happening.' : 'Still being decided.'}</p></div>${flap('plan-state', p.locked ? 'Final' : 'Draft', p.locked ? 'good' : 'warn')}</div>
+    <div class="screen-head"><div><h2>The plan</h2><p>${p.locked ? 'Locked in. This is happening.' : 'Still being decided.'}</p></div><span class="tag ${p.locked ? 'good' : 'warn'}">${p.locked ? 'Final' : 'Draft'}</span></div>
     ${authority}
     <section class="sec" aria-label="Details">${details}</section>
+    ${d.schedule.length || d.canPlan ? `
     <section class="sec" aria-labelledby="tt-h">
-      <div class="sec-head"><h2 id="tt-h">Timetable</h2><span class="side">${d.schedule.length ? plural(d.schedule.length, 'stop') : ''}</span></div>
-      ${d.schedule.length ? `<div class="timetable">${d.schedule.map((s) => `
-        <div class="tt-row"><span class="tx">${esc(s.text)}</span><span class="tm">${esc(fmtTime(s.time))}</span>
-          ${d.canPlan ? `<button class="icon-btn" data-act="rmSched" data-id="${s.id}" aria-label="Remove ${esc(s.text)}">${ic('x', 'sm')}</button>` : '<span></span>'}</div>`).join('')}</div>`
-        : `<p class="empty">${ic('clock')}<span>${d.canPlan ? 'Add the stops: meet up, main event, food.' : 'No timetable yet.'}</span></p>`}
-      ${d.canPlan ? `<form class="inline-form" data-form="sched">
+      <div class="sec-head"><h2 id="tt-h">Timetable</h2></div>
+      ${d.schedule.length ? `<div class="list">${d.schedule.map((s) => `
+        <div class="item"><span class="data tt-time">${esc(fmtTime(s.time))}</span><span class="grow wrap-text">${esc(s.text)}</span>
+          ${d.canPlan ? `<button class="icon-btn" data-act="rmSched" data-id="${s.id}" aria-label="Remove ${esc(s.text)}">${ic('x', 'sm')}</button>` : ''}</div>`).join('')}</div>` : ''}
+      ${d.canPlan ? more('sched', 'Add a stop', `<form class="inline-form" data-form="sched">
         <input type="time" name="time" data-keep="sched.time" value="${esc(v('sched.time'))}" aria-label="Time" style="max-width:128px" required>
-        <input type="text" name="text" data-keep="sched.text" value="${esc(v('sched.text'))}" placeholder="What happens" maxlength="100" aria-label="What happens" required>
+        <input type="text" name="text" data-keep="sched.text" value="${esc(v('sched.text'))}" placeholder="Meet up, food…" maxlength="100" aria-label="What happens" required>
         <button class="btn" aria-label="Add to timetable">${ic('plus')}</button>
-      </form>` : ''}
-    </section>
+      </form>`) : ''}
+    </section>` : ''}
     <section class="sec" aria-labelledby="info-h">
-      <div class="sec-head"><h2 id="info-h">Good to know</h2><span class="side">${x.roleOf('Info gatherer') ? `gatherer: ${esc(x.roleOf('Info gatherer').name)}` : ''}</span></div>
-      <p class="sub">Prices, opening hours, ticket links. Anyone can pin them here.</p>
-      <div class="list">${d.info.slice().reverse().map((i) => `
-        <div class="item">${av(x.byId[i.by]?.name || '?', 'sm')}<div class="grow"><div class="wrap-text">${linkify(i.text)}</div><div class="meta">${esc(x.byId[i.by]?.name || 'Someone')} · ${ago(i.at)} ago</div></div>
-        <button class="icon-btn" data-act="uninfo" data-id="${i.id}" aria-label="Unpin">${ic('x', 'sm')}</button></div>`).join('') || `<p class="empty">${ic('pin')}<span>Nothing pinned yet.</span></p>`}</div>
-      <form class="form" data-form="info">
+      <div class="sec-head"><h2 id="info-h">Good to know</h2></div>
+      ${d.info.length ? `<div class="list">${d.info.slice().reverse().map((i) => `
+        <div class="item"><div class="grow"><div class="wrap-text">${linkify(i.text)}</div><div class="meta">${esc(x.byId[i.by]?.name || 'Someone')} · ${ago(i.at)} ago</div></div>
+        <button class="icon-btn" data-act="uninfo" data-id="${i.id}" aria-label="Unpin">${ic('x', 'sm')}</button></div>`).join('')}</div>` : `<p class="sub">Prices, opening hours, ticket links. Anyone can pin them here.</p>`}
+      ${more('info', 'Pin something', `<form class="form" data-form="info">
         <label class="field"><span class="sr-only">Info to pin</span><textarea name="text" data-keep="info.text" maxlength="600" placeholder="Lanes are $8 a game, shoes $3. Open till 11pm.">${esc(v('info.text'))}</textarea></label>
         <button class="btn">${ic('pin', 'sm')}Pin it</button>
-      </form>
+      </form>`)}
     </section>`;
   }
 
@@ -634,13 +608,11 @@
     const voters = new Set(poll.options.flatMap((o) => o.votes));
     const top = poll.closed ? [...poll.options].sort((a, b) => b.votes.length - a.votes.length)[0] : null;
     const canManage = poll.by === d.me || d.canPlan;
-    const kindName = { place: 'Where', time: 'When', custom: 'Poll' }[poll.kind];
     return `
     <article class="poll" aria-labelledby="poll-${poll.id}">
       <div class="poll-head">
-        <span class="code" style="padding-top:2px">${x.pollCode(poll)}</span>
         <div class="grow"><h3 id="poll-${poll.id}">${esc(poll.q)}</h3>
-          <p class="meta">${kindName} · ${esc(x.byId[poll.by]?.name || 'Someone')} · ${plural(voters.size, 'vote')} · ${poll.multi ? 'pick any' : 'pick one'}</p></div>
+          <p class="meta">${esc(x.byId[poll.by]?.name || 'Someone')} · ${plural(voters.size, 'vote')}${poll.multi ? ' · pick as many as you like' : ''}</p></div>
         ${poll.closed ? `<span class="tag ${poll.picked ? 'good' : ''}">${poll.picked ? 'In the plan' : 'Closed'}</span>` : ''}
       </div>
       <div class="opts">${poll.options.map((o) => {
@@ -658,7 +630,8 @@
           ${d.canPlan && poll.kind !== 'custom' && poll.picked !== o.id ? `<button class="btn sm" data-act="pick" data-id="${poll.id}" data-opt="${o.id}" aria-label="Make ${esc(optLabel(poll, o))} official">Use</button>` : ''}
         </div>`;
       }).join('')}</div>
-      ${!poll.closed ? (poll.kind === 'time' ? `
+      ${!poll.closed || canManage ? `<div class="poll-more">${more(`poll.${poll.id}`, 'More', `
+        ${!poll.closed ? (poll.kind === 'time' ? `
         <form class="inline-form" data-form="pollOpt" data-id="${poll.id}">
           <input type="date" name="date" data-keep="po.${poll.id}.d" value="${esc(v(`po.${poll.id}.d`))}" aria-label="Date">
           <input type="time" name="time" data-keep="po.${poll.id}.t" value="${esc(v(`po.${poll.id}.t`))}" aria-label="Time" style="max-width:120px">
@@ -668,10 +641,10 @@
           <input type="text" name="text" data-keep="po.${poll.id}" value="${esc(v(`po.${poll.id}`))}" placeholder="${poll.kind === 'place' ? 'Suggest a place' : 'Add an option'}" maxlength="80" aria-label="New option">
           <button class="btn" aria-label="Add option">${ic('plus')}</button>
         </form>`) : ''}
-      ${canManage ? `<div class="row end">
-        <button class="btn sm quiet" data-act="closePoll" data-id="${poll.id}">${poll.closed ? 'Reopen' : 'Close poll'}</button>
-        <button class="btn sm quiet" data-act="rmPoll" data-id="${poll.id}" aria-label="Delete poll ${x.pollCode(poll)}">${ic('trash', 'sm')}</button>
-      </div>` : ''}
+        ${canManage ? `<div class="row">
+          <button class="btn sm" data-act="closePoll" data-id="${poll.id}">${poll.closed ? 'Reopen poll' : 'Close poll'}</button>
+          <button class="btn sm danger" data-act="rmPoll" data-id="${poll.id}">${ic('trash', 'sm')}Delete</button>
+        </div>` : ''}`)}</div>` : ''}
     </article>`;
   }
   function tabPolls(d, x) {
@@ -697,14 +670,15 @@
   }
   function pickupForm(d, x, driver) {
     const r = x.me.ride;
-    return `
-      <div class="sec-head"><h3>Exact pickup spot</h3><span class="side">private</span></div>
-      ${r.pickup ? `<div class="note">${ic('pin')}<span>${esc(r.pickup.text || 'Your GPS location')}${r.pickup.lat != null ? ' (with GPS pin)' : ''}<br><a href="${mapsUrl(r.pickup)}" target="_blank" rel="noopener">Check on Maps</a> · <button class="btn sm quiet" data-act="clearPickup" style="min-height:30px;padding:0 4px">Remove</button></span></div>` : ''}
-      <form class="form" data-form="pickup">
+    const form =`<form class="form" data-form="pickup">
         <label class="field"><span class="sr-only">Pickup spot</span><input type="text" name="text" data-keep="pickup.text" value="${esc(v('pickup.text', r.pickup?.text || ''))}" placeholder="Blue gate, 12 Lake Road" maxlength="300"></label>
-        <div class="row wrap-row"><button class="btn primary">Save spot</button><button type="button" class="btn" data-act="gps">${ic('gps', 'sm')}Use my location</button></div>
-      </form>
-      <p class="sub small">Only ${driver ? esc(driver.name) : 'the driver whose car you\'re in'} can see this. It's deleted once you're picked up, or after ${Math.round(d.pickupTtl / 3600000)} hours.</p>`;
+        <div class="row wrap-row"><button class="btn primary">Save spot</button><button type="button" class="btn" data-act="gps">${ic('gps', 'sm')}Use my location</button>${r.pickup ? '<button type="button" class="btn quiet" data-act="clearPickup">Remove</button>' : ''}</div>
+      </form>`;
+    return `
+      ${r.pickup
+        ? `<div class="note">${ic('pin')}<span>Pickup spot: <b>${esc(r.pickup.text || 'your GPS location')}</b><br><a href="${mapsUrl(r.pickup)}" target="_blank" rel="noopener">Check on Maps</a></span></div>${more('pickup', 'Change pickup spot', form)}`
+        : `<div class="sec-head"><h3>Where should ${driver ? esc(driver.name) : 'they'} pick you up?</h3></div>${form}`}
+      <p class="sub small">Only ${driver ? esc(driver.name) : 'your driver'} sees this. It's deleted once you're picked up, or after ${Math.round(d.pickupTtl / 3600000)} hours.</p>`;
   }
   function tabRides(d, x) {
     const me = x.me, r = me.ride;
@@ -722,7 +696,7 @@
       const stateTxt = { waiting: ['Not ready', ''], ready: ['Ready', 'good'], outside: ['You\'re outside', 'lav'], picked: ['In the car', 'good'] };
       const others = d.members.filter((m) => m.id !== me.id && x.isWaiting(m));
       panel = `
-        <div class="row"><span class="code">${x.carCode(me)}</span><div class="grow"><div class="strong">Seats for friends</div><div class="sub small">${riders.length} taken · ${free} free</div></div>
+        <div class="row"><div class="grow"><div class="strong">Seats for friends</div><div class="sub small">${riders.length} taken · ${free} free</div></div>
           <div class="stepper" role="group" aria-label="Seats"><button data-act="seats" data-v="${r.seats - 1}" aria-label="Fewer seats">${ic('minus', 'sm')}</button><output aria-live="polite">${r.seats}</output><button data-act="seats" data-v="${r.seats + 1}" aria-label="More seats">${ic('plus', 'sm')}</button></div></div>
         ${r.driverState === 'onway'
           ? `<div class="note good">${ic('car')}<span><b>You're on the way.</b>${r.eta ? ` Riders see you arriving around ${fmtClock(r.etaAt + r.eta * 60000)}.` : ''}</span></div>
@@ -756,25 +730,24 @@
         const st = r.riderState;
         panel = st === 'picked' ? `<div class="note good">${ic('check')}<span><b>You're in ${esc(dr.name)}'s car.</b> Enjoy.</span></div>` : `
           <div class="row">${av(dr.name)}<div class="grow"><div class="name">${esc(dr.name)} is picking you up</div>
-            <div class="meta">${dr.ride.driverState === 'onway' ? `On the way${dr.ride.eta ? `, around ${fmtClock(dr.ride.etaAt + dr.ride.eta * 60000)}` : ''}` : 'Hasn\'t left yet'}</div></div><span class="code">${x.carCode(dr)}</span></div>
+            <div class="meta">${dr.ride.driverState === 'onway' ? `On the way${dr.ride.eta ? `, around ${fmtClock(dr.ride.etaAt + dr.ride.eta * 60000)}` : ''}` : 'Hasn\'t left yet'}</div></div></div>
           ${st !== 'outside' ? `<button class="btn block ${st === 'ready' ? '' : 'good'}" data-act="ready" data-v="${st !== 'ready'}">${st === 'ready' ? `${ic('check', 'sm')}You said you're ready. Undo` : 'I\'m ready, come get me'}</button>` : ''}
           ${pickupForm(d, x, dr)}
           <button class="btn sm quiet" data-act="leaveCar">Leave ${esc(dr.name)}'s car</button>`;
       } else {
         const cars = x.drivers.filter((m) => m.id !== me.id);
         panel = `
-          <form class="form" data-form="area">
-            <label class="field">Roughly where are you? <span class="hint">Everyone sees this, so keep it rough. Your exact spot stays private.</span>
-              <span class="inline-form"><input type="text" name="area" data-keep="area" value="${esc(v('area', r.area))}" placeholder="Library area" maxlength="60"><button class="btn">Save</button></span></label>
-          </form>
-          <div class="sec-head"><h3>Cars</h3><span class="side">${cars.length}</span></div>
+          <div class="sec-head"><h3>Ask a driver</h3></div>
           ${cars.length ? `<div class="list">${cars.map((m) => {
             const free = x.freeSeats(m), q = x.reqBetween(me.id, m.id);
-            return `<div class="item"><span class="code">${x.carCode(m)}</span><div class="grow"><div class="name">${esc(m.name)}</div><div class="meta">${plural(Math.max(0, free), 'seat')} free${m.ride.driverState === 'onway' ? ' · on the way' : ''}</div></div>
+            return `<div class="item">${av(m.name)}<div class="grow"><div class="name">${esc(m.name)}</div><div class="meta">${plural(Math.max(0, free), 'seat')} free${m.ride.driverState === 'onway' ? ' · on the way' : ''}</div></div>
               ${q ? (q.kind === 'ask' ? `<button class="btn sm quiet" data-act="cancelReq" data-id="${q.id}">Asked · cancel</button>` : '<span class="tag lav">Offered you</span>')
                 : `<button class="btn sm" data-act="ask" data-id="${m.id}" ${free > 0 ? '' : 'disabled'}>${free > 0 ? `${ic('send', 'sm')}Ask for a lift` : 'Full'}</button>`}</div>`;
           }).join('')}</div>` : `<div class="note">${ic('info')}<span>Nobody is driving yet. Drivers can see you need a lift and offer one.</span></div>`}
-          ${pickupForm(d, x, null)}`;
+          ${more('area', r.area ? `Your area: ${esc(r.area)}` : 'Tell drivers roughly where you are', `<form class="form" data-form="area">
+            <label class="field">Roughly where are you? <span class="hint">Everyone sees this, so keep it rough. Your exact spot goes only to your driver later.</span>
+              <span class="inline-form"><input type="text" name="area" data-keep="area" value="${esc(v('area', r.area))}" placeholder="Library area" maxlength="60"><button class="btn">Save</button></span></label>
+          </form>`)}`;
       }
     } else if (r.mode === 'self') {
       panel = `<div class="note">${ic('nav')}<span>You're making your own way. Tap another option if that changes.</span></div>`;
@@ -786,11 +759,10 @@
     <div class="screen-head"><div><h2>Rides</h2><p>Offer a lift or ask for one. The other person says yes or no.</p></div></div>
     ${x.incoming.length ? `<section class="sec" aria-labelledby="req-h"><div class="sec-head"><h2 id="req-h">Requests for you</h2><span class="count">${x.incoming.length}</span></div><div class="stack">${x.incoming.map((q) => reqCard(d, x, q)).join('')}</div></section>` : ''}
     <section class="sec" aria-labelledby="mode-h"><div class="sec-head"><h2 id="mode-h">Getting there</h2></div>${choose}${panel}</section>
-    <section class="sec" aria-labelledby="board-h">
-      <div class="sec-head"><h2 id="board-h">Departures</h2><span class="side">${plural(x.drivers.length, 'car')}</span></div>
-      ${boardRows(d, x, false)}
+    <section class="sec" aria-labelledby="cars-h">
+      <div class="sec-head"><h2 id="cars-h">All cars</h2><span class="side">${plural(x.drivers.length, 'car')}</span></div>
+      ${carList(d, x)}
       ${x.waiting.length ? `<div class="row wrap-row"><span class="sub small">Still need a lift:</span>${x.waiting.map((m) => `<span class="tag bad">${esc(m.name)}${m.ride.area ? ` · ${esc(m.ride.area)}` : ''}</span>`).join('')}</div>` : ''}
-      ${x.undecided.length ? `<p class="sub small">Haven't picked yet: ${esc(x.undecided.map((m) => m.name).join(', '))}</p>` : ''}
     </section>`;
   }
 
@@ -837,17 +809,18 @@
     <section class="sec" aria-labelledby="budget-h">
       <div class="sec-head"><h2 id="budget-h">Budget</h2>${t ? `<span class="side">treasurer: ${esc(t.name)}</span>` : `<button class="btn sm" data-act="tab" data-tab="crew" data-seg="roles">Pick a Treasurer</button>`}</div>
       ${!b.amount || S.ui.editBudget ? (canSet ? form : `<p class="empty">${esc(t.name)} hasn't set the budget yet.</p>`) : `
-        <p class="pass-date" style="font-size:38px">${b.mode === 'each' ? `${x.cur(b.amount)} each` : `${x.cur(b.amount)} total`}</p>
-        <p class="sub">${b.mode === 'each' ? `${people.length} people × ${x.cur(b.amount)} = ${x.cur(target)}` : `About ${x.cur(fair)} each across ${people.length} people. Pledged so far: ${x.cur(pledged)}.`}</p>
-        <dl class="fare">
-          <div><dt>Received <small>confirmed by ${tName}</small></dt><dd>${x.cur(received)}</dd></div>
+        <p class="big-num data">${b.mode === 'each' ? `${x.cur(b.amount)} each` : `${x.cur(b.amount)} total`}</p>
+        <p class="sub">${b.mode === 'each' ? `${people.length} people, ${x.cur(target)} in all` : `About ${x.cur(fair)} each across ${people.length} people`}</p>
+        <div class="meter" role="img" aria-label="${Math.round(pct(received))}% collected, ${Math.round(pct(waitingAmt))}% waiting for the Treasurer"><i class="ok" style="width:${pct(received)}%"></i><i class="pend" style="width:${pct(waitingAmt)}%"></i></div>
+        <p class="sub"><b class="ink data">${x.cur(received)}</b> of ${x.cur(target)} collected${waitingAmt ? ` · <span style="color:var(--warn)">${x.cur(waitingAmt)} waiting for ${tName}</span>` : ''}</p>
+        ${more('fare', 'Breakdown', `<dl class="fare">
+          <div><dt>Collected <small>confirmed by ${tName}</small></dt><dd>${x.cur(received)}</dd></div>
           <div><dt>Waiting <small>to be confirmed</small></dt><dd style="color:var(--warn)">${x.cur(waitingAmt)}</dd></div>
-          <div><dt>Spent <small>see below</small></dt><dd>${x.cur(spent)}</dd></div>
-          <div class="total"><dt>Left in the kitty</dt><dd style="${received - spent < 0 ? 'color:var(--bad)' : ''}">${x.cur(received - spent)}</dd></div>
+          ${b.mode === 'goal' ? `<div><dt>Pledged</dt><dd>${x.cur(pledged)}</dd></div>` : ''}
+          <div><dt>Spent</dt><dd>${x.cur(spent)}</dd></div>
+          <div class="total"><dt>Left over</dt><dd style="${received - spent < 0 ? 'color:var(--bad)' : ''}">${x.cur(received - spent)}</dd></div>
         </dl>
-        <div class="meter" role="img" aria-label="${Math.round(pct(received))}% received, ${Math.round(pct(waitingAmt))}% waiting for the Treasurer"><i class="ok" style="width:${pct(received)}%"></i><i class="pend" style="width:${pct(waitingAmt)}%"></i></div>
-        <div class="legend"><span><i style="background:var(--good)"></i>Confirmed ${Math.round(pct(received))}%</span><span><i style="background:var(--warn)"></i>Waiting for ${tName}</span></div>
-        ${canSet ? `<button class="btn sm" data-act="editBudget">${ic('edit', 'sm')}Change budget</button>` : ''}`}
+        ${canSet ? `<button class="btn sm" data-act="editBudget">${ic('edit', 'sm')}Change budget</button>` : ''}`)}`}
     </section>
 
     ${b.amount && me.status !== 'out' ? `
@@ -883,13 +856,13 @@
         <div class="item"><div class="grow"><div class="name">${esc(e.what)}</div><div class="meta">${esc(x.byId[e.by]?.name || 'Someone')} · ${ago(e.at)} ago</div></div>
           <span class="data strong">${x.cur(e.amount)}</span>
           ${(e.by === me.id || isT) ? `<button class="icon-btn" data-act="rmExpense" data-id="${e.id}" aria-label="Remove ${esc(e.what)}">${ic('x', 'sm')}</button>` : ''}</div>`).join('') || `<p class="empty">${ic('money')}<span>Nothing spent yet. Log every payment so everyone can see.</span></p>`}</div>
-      <form class="form" data-form="expense">
+      ${more('exp', 'Log spending', `<form class="form" data-form="expense">
         <div class="form-row">
           <label class="field">What<input type="text" name="what" data-keep="exp.what" value="${esc(v('exp.what'))}" placeholder="Lanes" maxlength="100"></label>
           <label class="field">How much<input type="number" name="amount" min="0" step="any" inputmode="decimal" data-keep="exp.amount" value="${esc(v('exp.amount'))}"></label>
         </div>
-        <button class="btn">${ic('plus', 'sm')}Log spending</button>
-      </form>
+        <button class="btn">${ic('plus', 'sm')}Add</button>
+      </form>`)}
     </section>`;
   }
 
@@ -900,7 +873,7 @@
     let body = '';
     if (seg === 'people') {
       const groups = [['going', 'Going', 'good'], ['maybe', 'Maybe', 'warn'], [null, 'No answer', 'bad'], ['out', 'Can\'t make it', '']];
-      const rideTxt = (m) => m.ride.mode === 'driving' ? `Driving ${x.carCode(m)} · ${x.ridersOf(m.id).length}/${m.ride.seats}` : m.ride.mode === 'need' ? (m.ride.driverId ? `Riding with ${x.byId[m.ride.driverId]?.name || '?'}` : 'Needs a lift') : m.ride.mode === 'self' ? 'Own way' : '';
+      const rideTxt = (m) => m.ride.mode === 'driving' ? `Driving · ${x.ridersOf(m.id).length}/${m.ride.seats} seats` : m.ride.mode === 'need' ? (m.ride.driverId ? `Riding with ${x.byId[m.ride.driverId]?.name || '?'}` : 'Needs a lift') : m.ride.mode === 'self' ? 'Own way' : '';
       body = `
         <div class="row wrap-row">${groups.map(([k, l, c]) => { const n = d.members.filter((m) => (m.status || null) === k).length; return n ? `<span class="tag ${c}">${n} ${l.toLowerCase()}</span>` : ''; }).join('')}</div>
         ${groups.map(([k, l]) => {
@@ -973,7 +946,7 @@
       if (!m) { S.sheet = null; return ''; }
       const me = x.me, isMe = m.id === me.id;
       const status = { going: ['Going', 'good'], maybe: ['Maybe', 'warn'], out: ['Can\'t make it', ''] }[m.status] || ['No answer yet', 'bad'];
-      const ride = m.ride.mode === 'driving' ? `Driving ${x.carCode(m)}, ${x.freeSeats(m)} of ${m.ride.seats} seats free` : m.ride.mode === 'need' ? (m.ride.driverId ? `Riding with ${x.byId[m.ride.driverId]?.name}` : 'Needs a lift') : m.ride.mode === 'self' ? 'Making their own way' : 'Hasn\'t picked a ride';
+      const ride = m.ride.mode === 'driving' ? `Driving, ${x.freeSeats(m)} of ${m.ride.seats} seats free` : m.ride.mode === 'need' ? (m.ride.driverId ? `Riding with ${x.byId[m.ride.driverId]?.name}` : 'Needs a lift') : m.ride.mode === 'self' ? 'Making their own way' : 'Hasn\'t picked a ride';
       const acts = [];
       if (!isMe) {
         if (me.ride.mode === 'driving' && x.isWaiting(m)) {
@@ -1083,6 +1056,7 @@
     clearNudges: () => act('me.clearNudges'),
     nudge: (el) => act('nudge', { memberId: el.dataset.id, kind: el.dataset.kind }, 'Nudge sent. Only they can see it.'),
     allFeed: () => { S.ui.allFeed = !S.ui.allFeed; render(); },
+    more: (el) => { const k = el.dataset.k; S.ui.open[k] = !S.ui.open[k]; render(); const b = app.querySelector(`[data-act="more"][data-k="${CSS.escape(k)}"]`); if (b) b.focus({ preventScroll: true }); },
     editPlan: () => { S.ui.editPlan = true; clearDrafts('plan.'); render(); },
     cancelPlan: () => { S.ui.editPlan = false; clearDrafts('plan.'); render(); },
     lock: (el) => act('plan.lock', { locked: el.dataset.v === 'true' }, el.dataset.v === 'true' ? 'Plan locked in' : 'Plan reopened'),
