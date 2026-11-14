@@ -315,6 +315,11 @@ const actions = {
   // ----- the plan: only the Planner edits it; everyone else views it -----
   'plan.update'(sq, me, p) {
     mustPlan(sq, me);
+    // a typo in the year (2000 instead of 2026) would make the countdown say "9000 days ago"
+    if (p.date) {
+      const t = Date.parse(str(p.date, 10) + 'T12:00:00Z');
+      if (!Number.isFinite(t) || t < now() - 366 * DAY || t > now() + 3 * 366 * DAY) fail('That date looks wrong. Check the year.');
+    }
     for (const [k, max] of Object.entries(PLAN_FIELDS)) {
       if (p[k] !== undefined) sq.plan[k] = k === 'notes' ? text(p[k], max) : str(p[k], max);
     }
@@ -326,6 +331,14 @@ const actions = {
     mustPlan(sq, me);
     sq.plan.locked = !!p.locked;
     log(sq, `${me.name} ${sq.plan.locked ? 'locked in the plan. It\'s final' : 'reopened the plan'}`, 'plan');
+  },
+  // only the Planner can rename the squad
+  'squad.rename'(sq, me, p) {
+    mustPlan(sq, me);
+    const name = str(p.name, 60) || fail('Give the hangout a name.');
+    if (name === sq.name) return;
+    log(sq, `${me.name} renamed the squad to "${name}"`, 'edit');
+    sq.name = name;
   },
   'info.add'(sq, me, p) {
     const t = text(p.text, 600);

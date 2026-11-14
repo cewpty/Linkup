@@ -12,13 +12,16 @@ Squadup is one link per hangout. Everyone opens it, types their name and they're
 
 ## The look
 
-Simple on purpose. Home opens on one **plan card**: where, when, "Are you coming?" and your ride in plain words ("Aisha is picking you up"). Below it is **Needs you**, then a short summary of the squad. Extra options, like adding a timetable stop, pinning info, adding a poll option or logging spending, stay folded behind a **+** toggle until you need them. It's built dark-first in the logo's violet and lavender.
+Simple on purpose. Open the app and you land on **Your squads**: every squad you're in, with what needs you in each one, plus a **New squad** button and a **⋮** menu per squad (share invite, edit the plan, rename, leave, delete). First-time visitors get a landing page that shows a sample squad and how it beats the group chat.
+
+Inside a squad, Home opens on one **plan card**: where, when, "Are you coming?" and your ride in plain words ("Aisha is picking you up"). Right below it is **Needs you** in its own box, then how many people are in the squad and how many are going. Extra options, like adding a timetable stop, pinning info, adding a poll option or logging spending, stay folded behind a **+** toggle until you need them. It's built dark-first in the logo's violet and lavender.
 
 ## What it does
 
 | Where | What's in it |
 |---|---|
-| **Home** | The plan card (where, when, RSVP, your ride), a **Needs you** list of everything waiting on you (ride requests to accept, nudges, money to bring, polls to vote on, tasks), a squad summary, and recent activity (folded). |
+| **Your squads** | Every squad saved on this device, sorted so the ones that need you come first, then the soonest hangout. Each row shows the plan, how many people are in, and the most urgent thing waiting on you. The **⋮** menu shares the invite, opens the plan, renames the squad (Planner), copies your personal link, leaves, or deletes it for everyone (Planner). Paste an invite link to join another squad. |
+| **Home** | The plan card (where, when, RSVP, your ride), then a **Needs you** box of everything waiting on you (ride requests to accept, nudges, money to bring, polls to vote on, tasks), the member count, the cars summary, and recent activity (folded). |
 | **Plan** | Venue, date, time, address, notes and a timetable. **Only the Planner can edit or lock it**; everyone else views it. An info board anyone can pin prices and links to. |
 | **Polls** | **Anyone can start a poll and vote**: where, when, or anything ("Food after?"). Anyone can add options. The Planner taps **Use** to put a winning place or time into the plan. |
 | **Rides** | **Drivers offer a lift to anyone who needs one; riders ask a driver for one. Only the person receiving the request can accept or decline.** Riders share a rough area publicly and an exact pickup spot privately with their driver. "Leaving now" with an arrival time, "I'm outside" alerts that buzz the rider's phone, and check-ins at the venue. |

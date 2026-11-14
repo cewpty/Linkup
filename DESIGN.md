@@ -256,9 +256,11 @@ A violet-black night palette carrying the logo's violet and lavender, with three
 
 A single phone column in a 560px wrap with a 16px gutter. Screens are a grid with 20px between blocks; sections stack with 10px gaps under a section head with an 8px bottom padding and a 1px rule. The app bar is sticky at the top; the five-tab bar is fixed at the bottom, and the page reserves 108px plus the safe-area inset beneath it.
 
-Lists are ruled, not carded: rows of 56px minimum separated by 1px rules. The plan card and the landing's start form are the only cards. Fact and fare tables are framed once (1px rule, 8px radius).
+Lists are ruled, not carded: rows of 56px minimum separated by 1px rules. Cards are few: the plan card, the Needs you box, the member row and the landing's sample squad and closing call to action. Fact and fare tables are framed once (1px rule, 8px radius).
 
-**Home order:** outside banner (only when relevant), plan card, Needs you, At the venue (only on the day), The squad (two summary rows), Recent activity (folded).
+**Squad Home order:** outside banner (only when relevant), plan card, Needs you (a box with a rose stroke; a one-line "all set" note when empty), member row (faces, "6 people", going/maybe/no answer), At the venue (only on the day), Getting there (cars summary), Recent activity (folded). The plan card always stays first.
+
+**Your squads** (the root page once you're in any squad): app bar with the mark and a New squad button, the "Your squads" screen title with a one-line count of what needs you, then ruled squad rows sorted by what needs you, then the soonest date. Each row: avatar, name, plan line, people line, the most urgent need in its tone colour, a rose count, and a ⋮ button that opens a menu sheet (open, share invite, plan, rename, personal link, leave, delete). First-time visitors without squads get the landing instead: headline, Start a squad and Try the demo, a sample squad built from real components, "The group chat vs Squadup" (struck-through chat lines, green-ticked answers), three numbered steps, a privacy line and a closing card.
 
 ### Named Rules
 **The Fold Rule.** A screen shows what most people need right now. Secondary actions and detail (add a stop, pin info, add a poll option, close or delete a poll, rough area, change pickup spot, log spending, money breakdown, recent activity) sit behind a lavender toggle with a plus icon and open in place. A toggle's open state survives live updates.
@@ -299,6 +301,9 @@ One 1px Edge frame split into equal 44px cells. Selected fills violet with white
 
 ### Lists and the cars list
 Ruled rows: avatar, name over a muted meta line, then a tag or action. The cars list shows each driver with their riders and a plain status tag (2 free, Full, On way, Outside, Arrived).
+
+### Member row
+A surface row (14px radius, 1px rule): up to three overlapping small avatars plus a "+n" face, "n people" in 700 15px, a muted "going · maybe · no answer" line and a chevron to Crew.
 
 ### Needs-you rows
 Ruled rows with a 24px tone glyph, a 700 15px title over a muted sub-line, and either a chevron or inline actions.

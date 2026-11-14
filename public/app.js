@@ -1,5 +1,6 @@
 /* Squadup front end: plain JS, no build step.
    Plain and quiet: one plan card on Home, the rest one tap away. Extras sit behind "More" toggles.
+   The root page lists your squads (or shows the landing on a first visit). Inside a squad:
    Tabs: Home · Plan · Polls · Rides · Money, plus a Crew page and bottom sheets. */
 (() => {
   'use strict';
@@ -67,7 +68,8 @@
     const t = new Date(); t.setHours(0, 0, 0, 0);
     return Math.round((d - t) / 86400000);
   }
-  const countdown = (n) => n === null ? '' : n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : n > 1 ? `In ${n} days` : n === -1 ? 'Yesterday' : `${-n} days ago`;
+  const countdown = (n) => n === null ? '' : n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : n > 1 ? `In ${n} days` : n === -1 ? 'Yesterday' : n >= -14 ? `${-n} days ago` : 'Already happened';
+  const todayISO = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
   const mapsUrl = (p) => p && p.lat != null
     ? `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(typeof p === 'string' ? p : p.text)}`;
@@ -122,6 +124,7 @@
     tab: 'home', sheet: null, drafts: {},
     ui: { editPlan: false, editBudget: false, editPaid: false, crewSeg: 'people', allFeed: false, showClosed: false, pollKind: 'custom', pollN: 3, open: {} },
     es: null, ws: null, noWs: false, busy: false,
+    hub: {}, hubLoaded: false, hubGone: 0, // My squads: what each saved squad looks like right now
   };
   const TABS = ['home', 'plan', 'polls', 'rides', 'money'];
   const v = (key, fb = '') => (key in S.drafts ? S.drafts[key] : fb);
@@ -284,10 +287,44 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.route === 'squad') refresh(); });
   setInterval(() => { if (S.route === 'squad' && !document.hidden) refresh(); }, 20000);
 
+  // ================= My squads: every squad saved on this device =================
+  const hubIds = () => { const all = store.all(); return Object.keys(all).filter((id) => all[id].token); };
+  async function loadHub() {
+    const all = store.all();
+    await Promise.all(hubIds().map(async (id) => {
+      try {
+        const d = await api('GET', `/api/squads/${id}`, null, all[id].token);
+        S.hub[id] = { st: 'ok', d };
+        store.put(id, { name: d.name, key: d.key });
+      } catch (e) {
+        // deleted, expired or you were removed: it can't come back, so it leaves the list
+        if (e.status === 403 || e.status === 404) { store.drop(id); delete S.hub[id]; S.hubGone++; }
+        else S.hub[id] = { st: S.hub[id]?.d ? 'ok' : 'err', d: S.hub[id]?.d };
+      }
+    }));
+    S.hubLoaded = true;
+    if (S.route === 'home') render();
+  }
+  async function hubAct(id, type, params = {}, okMsg) {
+    const saved = store.all()[id];
+    if (!saved || !saved.token || S.busy) return false;
+    S.busy = true;
+    try {
+      const d = await api('POST', `/api/squads/${id}/act`, { type, ...params }, saved.token);
+      if (d.left || d.deleted) { store.drop(id); delete S.hub[id]; S.sheet = null; }
+      else { S.hub[id] = { st: 'ok', d }; store.put(id, { name: d.name }); }
+      render();
+      if (okMsg) toast(okMsg);
+      return true;
+    } catch (e) { toast(e.message, true); return false; } finally { S.busy = false; }
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && S.route === 'home' && hubIds().length) loadHub(); });
+  setInterval(() => { if (S.route === 'home' && !document.hidden && hubIds().length) loadHub(); }, 30000);
+
   // ================= routing =================
   async function boot() {
     const m = location.pathname.match(/^\/s\/([\w-]+)/);
-    if (!m) { S.route = 'home'; return render(); }
+    if (!m) { S.route = 'home'; render(); if (hubIds().length) loadHub(); return; }
     S.squadId = m[1];
     const q = new URLSearchParams(location.search);
     S.key = q.get('k');
@@ -335,7 +372,7 @@
     const focusKey = active && active.dataset ? active.dataset.keep : null;
     let sel = null;
     try { if (focusKey && active.selectionStart != null) sel = [active.selectionStart, active.selectionEnd]; } catch {}
-    if (S.route === 'home') app.innerHTML = viewLanding();
+    if (S.route === 'home') app.innerHTML = (hubIds().length ? viewHub() : viewLanding()) + (S.sheet ? viewHubSheet() : '');
     else if (S.route === 'join') app.innerHTML = viewJoin();
     else if (S.route === 'lost') app.innerHTML = viewLost();
     else if (S.route === 'squad' && S.data) app.innerHTML = viewSquad();
@@ -352,48 +389,185 @@
   }
 
   // ---------- landing / join / lost ----------
+  // The name you used in your other (non-demo) squads, to save typing it again.
+  const knownName = () => Object.values(S.hub).map((h) => h.d && !h.d.demo && h.d.members.find((m) => m.id === h.d.me)?.name).find(Boolean) || '';
+  const sheetWrap = (title, body) => `
+      <div class="scrim" data-act="closeSheet"></div>
+      <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+        <div class="grabber" aria-hidden="true"></div>
+        <div class="sheet-head"><h2 id="sheet-title" tabindex="-1">${esc(title)}</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">${ic('x')}</button></div>
+        ${body}
+      </div>`;
+  const CURRENCIES = ['$', '₹', '€', '£', '৳', '₨', 'A$', 'C$', 'R', '₱', '¥', '₦'];
+  const createForm = () => `
+    <form class="form" data-form="create">
+      <label class="field">What's the hangout?
+        <input type="text" name="name" data-keep="create.name" value="${esc(v('create.name'))}" placeholder="Saturday bowling" maxlength="60" required>
+      </label>
+      <div class="form-row">
+        <label class="field">Your name
+          <input type="text" name="you" data-keep="create.you" value="${esc(v('create.you', knownName()))}" placeholder="Sam" maxlength="30" required autocomplete="given-name">
+        </label>
+        <label class="field">Currency
+          <select name="currency" data-keep="create.currency">
+            ${CURRENCIES.map((c) => `<option ${v('create.currency', '$') === c ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+      <button class="btn primary block">Create squad</button>
+      <p class="sub small">No accounts. You start as the Planner; friends join with your link.</p>
+    </form>`;
+
+  // A small, real-looking slice of a squad's Home, so first-timers see the product before they start.
+  const landingPreview = () => `
+    <figure class="preview" aria-label="What a squad looks like">
+      <div class="preview-screen" inert aria-hidden="true">
+        <div class="pv-bar">${MARK}<span><b>Saturday bowling</b><small>6 people</small></span></div>
+        <div class="card plan-card">
+          <div class="row"><span class="tag lav">In 6 days</span><span class="tag good">${ic('lock', 'sm')}Locked in</span></div>
+          <p class="pc-venue">Strike Bowling</p>
+          <p class="pc-when">Sat · 18:30</p>
+          <div class="pc-ride">${ic('car')}<span class="grow">Your ride<b>Aisha is picking you up</b></span></div>
+        </div>
+        <div class="need bad has-acts"><span class="glyph">${ic('car')}</span><span class="t">Omar is asking you for a lift<small>Near the library · 2m ago</small></span><span class="acts"><span class="btn sm good">${ic('check', 'sm')}Accept</span><span class="btn sm">Decline</span></span></div>
+      </div>
+      <figcaption class="sub small">A sample squad. Try the real thing with the demo.</figcaption>
+    </figure>`;
+
+  // ---------- landing: first visit, no squads yet ----------
   function viewLanding() {
-    const mine = Object.entries(store.all()).filter(([, x]) => x.token);
+    const swaps = [
+      ['"Wait, where are we going again?" Scroll up 300 messages.', 'One plan card: where, when, a map link and a countdown.'],
+      ['"Can someone pick me up?" Nobody sees it.', 'Ask a driver for a seat. They tap yes. Only they see your pickup spot.'],
+      ['"Pizza or tacos?" 40 replies, no answer.', 'A poll anyone can start. The Planner makes the winner official.'],
+      ['"I already paid you!" "No you didn\'t."', 'The Treasurer confirms every payment. Nobody argues later.'],
+    ];
     return `
     <main class="wrap landing">
-      <section>
+      <section class="hero">
         <img class="logo" src="/brand/logo.png" alt="Squadup" width="132" height="124">
-        <h1 class="manifesto" style="margin-top:22px">Plans that don't die in the <em>group chat</em>.</h1>
-        <p class="lead">One link for the plan, the polls, who's picking up who, and who's actually paid.</p>
+        <h1 class="manifesto">Plans that don't die in the <em>group chat</em>.</h1>
+        <p class="lead">One link per hangout. The plan, the polls, who's picking up who, and who's actually paid.</p>
+        <div class="cta">
+          <button class="btn primary" data-act="sheet" data-type="create">${ic('plus', 'sm')}Start a squad</button>
+          <button class="btn" data-act="demo">Try the demo</button>
+        </div>
+        <p class="sub small">Free. No accounts, no passwords, no phone numbers.</p>
       </section>
-      <ul class="points" aria-label="How a squad works">
-        <li>${ic('crown')}<span><b>The Planner locks the plan.</b> Everyone else just views it.</span></li>
-        <li>${ic('car')}<span><b>Ask for a lift, or get offered one.</b> They say yes or no.</span></li>
-        <li>${ic('money')}<span><b>The Treasurer confirms payments.</b> No "I already paid you" fights.</span></li>
-      </ul>
-      <section class="card">
-        <h2 class="card-title">Start a squad</h2>
-        <form class="form" data-form="create">
-          <label class="field">What's the hangout?
-            <input type="text" name="name" data-keep="create.name" value="${esc(v('create.name'))}" placeholder="Saturday bowling" maxlength="60" required>
-          </label>
-          <div class="form-row">
-            <label class="field">Your name
-              <input type="text" name="you" data-keep="create.you" value="${esc(v('create.you'))}" placeholder="Sam" maxlength="30" required autocomplete="given-name">
-            </label>
-            <label class="field">Currency
-              <select name="currency" data-keep="create.currency">
-                ${['$', '₹', '€', '£', '৳', '₨', 'A$', 'C$', 'R', '₱', '¥', '₦'].map((c) => `<option ${v('create.currency', '$') === c ? 'selected' : ''}>${c}</option>`).join('')}
-              </select>
-            </label>
-          </div>
-          <button class="btn primary block">Create squad</button>
-          <p class="sub small">No accounts. You start as the Planner; friends join with your link.</p>
-        </form>
+
+      ${landingPreview()}
+
+      <section class="sec" aria-labelledby="swap-h">
+        <div class="sec-head"><h2 id="swap-h">The group chat vs Squadup</h2></div>
+        <ul class="swaps">${swaps.map(([was, now]) => `<li><s>${esc(was)}</s><span>${ic('check', 'sm')}${esc(now)}</span></li>`).join('')}</ul>
       </section>
-      <section class="demo-cta">
+
+      <section class="sec" aria-labelledby="how-h">
+        <div class="sec-head"><h2 id="how-h">How it works</h2></div>
+        <ol class="steps">
+          <li><span><b>Start a squad.</b> Name the hangout. You're the Planner.</span></li>
+          <li><span><b>Drop the link in the group chat.</b> Only people with it can get in.</span></li>
+          <li><span><b>Friends tap in with just their name.</b> Everyone sees the same plan, live.</span></li>
+        </ol>
+      </section>
+
+      <p class="trust">${ic('shield')}<span>Pickup spots go only to your driver and are deleted after pickup. The whole squad deletes itself a week after the hangout.</span></p>
+
+      <section class="card end-cta">
+        <h2 class="card-title">Got a hangout coming up?</h2>
+        <button class="btn primary block" data-act="sheet" data-type="create">${ic('plus', 'sm')}Start a squad</button>
         <button class="btn block" data-act="demo">Try the demo squad</button>
-        <p class="sub small">Just looking? It comes with friends, cars, polls and a budget already in it.</p>
       </section>
-      ${mine.length ? `<section class="sec"><div class="sec-head"><h2>Your squads</h2></div><div class="list">
-        ${mine.map(([id, x]) => `<a class="item" href="/s/${esc(id)}" style="text-decoration:none;color:inherit">${av(x.name || '?', 'sm')}<div class="grow"><div class="name">${esc(x.name || 'Squad')}</div></div>${ic('chev')}</a>`).join('')}
-      </div></section>` : ''}
     </main>`;
+  }
+
+  // ---------- My squads: the home for anyone already in a squad ----------
+  function hubRow(id) {
+    const saved = store.all()[id] || {}, h = S.hub[id], d = h && h.d;
+    const name = d ? d.name : saved.name || 'Squad';
+    let meta = '', alert = '', count = 0, people = '';
+    if (d) {
+      const x = derive(d);
+      const needs = x.me ? needsYou(d, x) : [];
+      count = needs.length;
+      const days = daysUntil(d.plan.date);
+      meta = [d.plan.date ? countdown(days) : '', d.plan.venue, d.plan.time && !d.plan.date ? fmtTime(d.plan.time) : ''].filter(Boolean).map(esc).join(' · ') || 'No plan yet';
+      const going = d.members.filter((m) => m.status === 'going').length;
+      people = `${plural(d.members.length, 'person', 'people')} · ${going} going`;
+      if (needs[0]) alert = `<span class="sq-alert ${needs[0].tone}">${needs[0].title}${count > 1 ? ` <span class="muted">and ${count - 1} more</span>` : ''}</span>`;
+    } else meta = h && h.st === 'err' ? 'Couldn\'t load. Check your connection.' : 'Loading…';
+    return `
+      <li class="sq-row">
+        <a class="sq-link" href="/s/${esc(id)}">
+          ${av(name)}
+          <span class="grow">
+            <span class="name">${esc(name)}</span>
+            <span class="meta">${meta}</span>
+            ${people ? `<span class="meta">${people}</span>` : ''}
+            ${alert}
+          </span>
+          ${count ? `<span class="count" aria-label="${count} need you">${count}</span>` : ''}
+        </a>
+        <button class="icon-btn" data-act="sheet" data-type="sqMenu" data-id="${esc(id)}" aria-label="Options for ${esc(name)}">${ic('more', 'lg')}</button>
+      </li>`;
+  }
+
+  function viewHub() {
+    const ids = hubIds();
+    const needCount = (id) => { const d = S.hub[id]?.d; if (!d) return 0; const x = derive(d); return x.me ? needsYou(d, x).length : 0; };
+    const when = (id) => { const n = daysUntil(S.hub[id]?.d?.plan.date); return n === null ? 9e4 : n < 0 ? 9e5 - n : n; };
+    // what needs you first, then the soonest hangout, then undated, then past
+    const sorted = ids.slice().sort((a, b) => (needCount(b) > 0) - (needCount(a) > 0) || when(a) - when(b));
+    const total = ids.reduce((s, id) => s + needCount(id), 0);
+    const waiting = ids.filter((id) => needCount(id)).length;
+    return `
+      <header class="appbar"><div class="wrap">
+        ${MARK}
+        <div class="title"><h1>Squadup</h1><p>${plural(ids.length, 'squad')}</p></div>
+        <button class="btn sm primary" data-act="sheet" data-type="create">${ic('plus', 'sm')}New squad</button>
+      </div></header>
+      <main class="wrap page hub">
+        <div class="screen-head"><div><h2>Your squads</h2>
+          <p>${!S.hubLoaded ? 'Checking for updates…' : total ? `<b class="ink">${plural(total, 'thing')} ${total === 1 ? 'needs' : 'need'} you</b> in ${plural(waiting, 'squad')}.` : 'Nothing needs you right now.'}</p></div></div>
+        ${S.hubGone ? `<p class="note">${ic('info')}<span>${S.hubGone === 1 ? 'A squad you were in was' : `${S.hubGone} squads you were in were`} deleted, so ${S.hubGone === 1 ? 'it\'s' : 'they\'re'} gone from your list.</span></p>` : ''}
+        <ul class="sq-list">${sorted.map(hubRow).join('')}</ul>
+        <section class="sec">
+          <button class="btn primary block" data-act="sheet" data-type="create">${ic('plus', 'sm')}Start a new squad</button>
+          ${more('joinLink', 'Got an invite link?', `<form class="inline-form" data-form="joinLink"><input type="text" name="url" data-keep="joinLink.url" value="${esc(v('joinLink.url'))}" placeholder="Paste the link" aria-label="Invite link" required><button class="btn">Open</button></form>`)}
+          <button class="more-btn" data-act="demo">${ic('eye', 'sm')}Try the demo squad</button>
+        </section>
+      </main>`;
+  }
+
+  // Sheets on the My squads page: new squad, and the ⋮ menu for one squad.
+  function viewHubSheet() {
+    const s = S.sheet;
+    if (s.type === 'create') return sheetWrap('New squad', createForm());
+    if (s.type !== 'sqMenu') return '';
+    const id = s.id, saved = store.all()[id];
+    if (!saved) { S.sheet = null; return ''; }
+    const d = S.hub[id]?.d;
+    if (!d) return sheetWrap(saved.name || 'Squad', `
+      <p class="sub" style="margin-bottom:12px">This squad couldn't be loaded right now.</p>
+      <div class="menu">
+        <a class="item" href="/s/${esc(id)}">${ic('chev')}<span class="grow name">Open anyway</span></a>
+        <button class="item danger" data-act="forget" data-id="${esc(id)}">${ic('x')}<span class="grow name">Remove from this device</span></button>
+      </div>`);
+    const x = derive(d), me = x.me;
+    const roles = me ? x.rolesHeld(me.id) : [];
+    const renameOpen = S.ui.open['rename.' + id];
+    return sheetWrap(d.name, `
+      <p class="sub" style="margin-bottom:6px">You're in as <b class="ink">${esc(me?.name)}</b>${roles.length ? ` · ${esc(roles.join(', '))}` : ''}</p>
+      <div class="menu">
+        <a class="item" href="/s/${esc(id)}">${ic('home')}<span class="grow name">Open squad</span></a>
+        <button class="item" data-act="hubInvite" data-id="${esc(id)}">${ic('share')}<span class="grow name">Share invite link</span></button>
+        <a class="item" href="/s/${esc(id)}#plan">${ic('plan')}<span class="grow name">${d.canPlan ? 'Edit the plan' : 'See the plan'}</span></a>
+        ${d.canPlan ? `<button class="item" data-act="more" data-k="rename.${esc(id)}" aria-expanded="${!!renameOpen}">${ic('edit')}<span class="grow name">Rename squad</span></button>
+          ${renameOpen ? `<form class="inline-form more-body" data-form="rename" data-id="${esc(id)}" style="padding-bottom:10px"><input type="text" name="name" data-keep="rename.${esc(id)}" value="${esc(v('rename.' + id, d.name))}" maxlength="60" required aria-label="Squad name"><button class="btn primary">Save</button></form>` : ''}` : ''}
+        <button class="item" data-act="hubPersonal" data-id="${esc(id)}">${ic('copy')}<span class="grow name">Copy my personal link</span></button>
+        <button class="item danger" data-act="hubLeave" data-id="${esc(id)}">${ic('leave')}<span class="grow name">Leave squad</span></button>
+        ${d.canDelete ? `<button class="item danger" data-act="hubDelete" data-id="${esc(id)}">${ic('trash')}<span class="grow name">Delete for everyone</span></button>` : ''}
+      </div>`);
   }
 
   function viewJoin() {
@@ -432,7 +606,7 @@
     const body = { home: tabHome, plan: tabPlan, polls: tabPolls, rides: tabRides, money: tabMoney, crew: pageCrew }[S.tab](d, x, needs);
     return `
       <header class="appbar"><div class="wrap">
-        ${isCrew ? `<button class="icon-btn" data-act="tab" data-tab="home" aria-label="Back to Home">${ic('back', 'lg')}</button>` : MARK}
+        ${isCrew ? `<button class="icon-btn" data-act="tab" data-tab="home" aria-label="Back to Home">${ic('back', 'lg')}</button>` : `<a class="icon-btn all-squads" href="/" aria-label="All your squads">${ic('back')}${MARK}</a>`}
         <div class="title"><h1>${esc(d.name)}</h1><p>${esc(subtitle)}</p></div>
         ${isCrew ? '' : `<button class="icon-btn" data-act="tab" data-tab="crew" aria-label="Crew, ${d.members.length} people">${ic('crew', 'lg')}<span class="count quiet">${d.members.length}</span></button>`}
         <button class="icon-btn" data-act="sheet" data-type="settings" aria-label="Squad settings and invite">${ic('more', 'lg')}</button>
@@ -516,10 +690,16 @@
       <button class="pc-ride" data-act="tab" data-tab="rides">${ic('car')}<span class="grow">Your ride<b>${rideLine(d, x)}</b></span>${ic('chev')}</button>
     </section>
 
-    <section class="sec" aria-labelledby="needs-h">
-      <div class="sec-head"><h2 id="needs-h">Needs you</h2>${needs.length ? `<span class="count">${needs.length}</span>` : ''}</div>
-      ${needs.length ? `<div>${needs.map(needRow).join('')}</div>` : `<p class="empty">${ic('check')}<span>You're all set. Nothing is waiting on you.</span></p>`}
-    </section>
+    ${needs.length ? `
+    <section class="needs-box" aria-labelledby="needs-h">
+      <div class="needs-head"><h2 id="needs-h">Needs you</h2><span class="count">${needs.length}</span></div>
+      <div>${needs.map(needRow).join('')}</div>
+    </section>` : `<p class="note good">${ic('check')}<span>You're all set. Nothing is waiting on you.</span></p>`}
+
+    <button class="crew-strip" data-act="tab" data-tab="crew" data-seg="people" aria-label="${plural(d.members.length, 'person', 'people')} in the squad. See the crew">
+      <span class="faces" aria-hidden="true">${d.members.slice(0, d.members.length > 3 ? 2 : 3).map((m) => av(m.name, 'sm')).join('')}${d.members.length > 3 ? `<span class="av sm more-faces">+${d.members.length - 2}</span>` : ''}</span>
+      <span class="grow"><b>${plural(d.members.length, 'person', 'people')}</b><small>${going.length} going · ${maybe.length} maybe · ${noAnswer.length} no answer</small></span>${ic('chev')}
+    </button>
 
     ${showCheckin ? `
     <section class="sec">
@@ -530,9 +710,8 @@
     </section>` : ''}
 
     <section class="sec" aria-labelledby="squad-h">
-      <div class="sec-head"><h2 id="squad-h">The squad</h2></div>
+      <div class="sec-head"><h2 id="squad-h">Getting there</h2></div>
       <div class="list">
-        <button class="item" data-act="tab" data-tab="crew" data-seg="people">${ic('crew')}<span class="grow"><span class="name" style="display:block">${going.length} going</span><span class="meta" style="display:block">${maybe.length} maybe · ${noAnswer.length} haven't answered</span></span>${ic('chev')}</button>
         <button class="item" data-act="tab" data-tab="rides">${ic('car')}<span class="grow"><span class="name" style="display:block">${plural(x.drivers.length, 'car')}</span><span class="meta" style="display:block">${x.waiting.length ? `<span style="color:var(--bad)">${x.waiting.length} still ${x.waiting.length === 1 ? 'needs' : 'need'} a lift</span>` : 'Everyone who needs a lift has one'}</span></span>${ic('chev')}</button>
       </div>
     </section>
@@ -556,7 +735,7 @@
         <label class="field">Venue<input type="text" name="venue" data-keep="plan.venue" value="${esc(v('plan.venue', p.venue))}" placeholder="Strike Bowling" maxlength="120"></label>
         <label class="field">Address or map link<input type="text" name="address" data-keep="plan.address" value="${esc(v('plan.address', p.address))}" placeholder="120 Market St" maxlength="300"></label>
         <div class="form-row">
-          <label class="field">Date<input type="date" name="date" data-keep="plan.date" value="${esc(v('plan.date', p.date))}"></label>
+          <label class="field">Date<input type="date" min="${todayISO()}" name="date" data-keep="plan.date" value="${esc(v('plan.date', p.date))}"></label>
           <label class="field">Time<input type="time" name="time" data-keep="plan.time" value="${esc(v('plan.time', p.time))}"></label>
         </div>
         <label class="field">Notes <span class="hint">Meet point, what to bring, dress code</span><textarea name="notes" data-keep="plan.notes" maxlength="1000">${esc(v('plan.notes', p.notes))}</textarea></label>
@@ -633,7 +812,7 @@
       ${!poll.closed || canManage ? `<div class="poll-more">${more(`poll.${poll.id}`, 'More', `
         ${!poll.closed ? (poll.kind === 'time' ? `
         <form class="inline-form" data-form="pollOpt" data-id="${poll.id}">
-          <input type="date" name="date" data-keep="po.${poll.id}.d" value="${esc(v(`po.${poll.id}.d`))}" aria-label="Date">
+          <input type="date" min="${todayISO()}" name="date" data-keep="po.${poll.id}.d" value="${esc(v(`po.${poll.id}.d`))}" aria-label="Date">
           <input type="time" name="time" data-keep="po.${poll.id}.t" value="${esc(v(`po.${poll.id}.t`))}" aria-label="Time" style="max-width:120px">
           <button class="btn" aria-label="Add this time">${ic('plus')}</button>
         </form>` : `
@@ -927,6 +1106,8 @@
         <div class="block"><h3>Invite friends</h3>
           <p class="sub" style="margin-bottom:8px">Only people with this link can join.</p>
           <div class="inline-form"><input type="text" readonly value="${esc(inviteUrl)}" aria-label="Invite link"><button class="btn primary" data-act="invite-link">${ic('share', 'sm')}Share</button></div></div>
+        ${d.canPlan ? `<div class="block"><h3>Name</h3>
+          <form class="inline-form" data-form="rename" data-id="${esc(d.id)}"><input type="text" name="name" data-keep="rename.${esc(d.id)}" value="${esc(v('rename.' + d.id, d.name))}" maxlength="60" required aria-label="Squad name"><button class="btn">Rename</button></form></div>` : ''}
         ${d.plan.date ? `<div class="block"><h3>Calendar</h3><button class="btn" data-act="ics">${ic('download', 'sm')}Add to my calendar</button></div>` : ''}
         <div class="block"><h3>Another device</h3>
           <p class="sub" style="margin-bottom:8px">Your personal link logs you in as ${esc(x.me.name)} anywhere. Keep it to yourself.</p>
@@ -985,7 +1166,7 @@
           <label class="field">Question <input type="text" name="q" data-keep="np.q" value="${esc(v('np.q'))}" maxlength="100" placeholder="${{ place: 'Where should we go?', time: 'When works for everyone?', custom: 'Food after?' }[k]}" ${k === 'custom' ? 'required' : ''}></label>
           <fieldset class="stack" style="border:0;padding:0;margin:0"><legend class="strong" style="margin-bottom:6px">Options</legend>
             ${Array.from({ length: n }, (_, i) => k === 'time'
-              ? `<div class="form-row"><input type="date" name="d${i}" data-keep="np.d${i}" value="${esc(v('np.d' + i))}" aria-label="Option ${i + 1} date"><input type="time" name="t${i}" data-keep="np.t${i}" value="${esc(v('np.t' + i))}" aria-label="Option ${i + 1} time"></div>`
+              ? `<div class="form-row"><input type="date" min="${todayISO()}" name="d${i}" data-keep="np.d${i}" value="${esc(v('np.d' + i))}" aria-label="Option ${i + 1} date"><input type="time" name="t${i}" data-keep="np.t${i}" value="${esc(v('np.t' + i))}" aria-label="Option ${i + 1} time"></div>`
               : `<input type="text" name="o${i}" data-keep="np.o${i}" value="${esc(v('np.o' + i))}" maxlength="80" placeholder="${k === 'place' ? `Place ${i + 1}` : `Option ${i + 1}`}" aria-label="Option ${i + 1}">`).join('')}
             ${n < 8 ? `<button type="button" class="btn sm quiet" data-act="pollMore">${ic('plus', 'sm')}Another option</button>` : ''}
           </fieldset>
@@ -993,13 +1174,7 @@
           <button class="btn primary block">Start poll</button>
         </form>`;
     }
-    return `
-      <div class="scrim" data-act="closeSheet"></div>
-      <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
-        <div class="grabber" aria-hidden="true"></div>
-        <div class="sheet-head"><h2 id="sheet-title" tabindex="-1">${esc(title)}</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">${ic('x')}</button></div>
-        ${body}
-      </div>`;
+    return sheetWrap(title, body);
   }
 
   // ---------- calendar file ----------
@@ -1029,9 +1204,9 @@
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.sheet) { S.sheet = null; render(); } });
 
-  const shareInvite = async () => {
-    const url = `${location.origin}/s/${S.data.id}?k=${encodeURIComponent(S.data.key)}`;
-    if (navigator.share) { try { await navigator.share({ title: S.data.name, text: `Join "${S.data.name}" on Squadup. Plan, polls, rides and money in one place:`, url }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  const shareInvite = async (d = S.data) => {
+    const url = `${location.origin}/s/${d.id}?k=${encodeURIComponent(d.key)}`;
+    if (navigator.share) { try { await navigator.share({ title: d.name, text: `Join "${d.name}" on Squadup. Plan, polls, rides and money in one place:`, url }); return; } catch (e) { if (e.name === 'AbortError') return; } }
     toast((await copyText(url)) ? 'Invite link copied. Paste it in the group chat.' : url);
   };
 
@@ -1046,7 +1221,13 @@
     tab: (el) => go(el.dataset.tab, el.dataset.seg),
     sheet: (el) => { S.sheet = { type: el.dataset.type, id: el.dataset.id }; if (el.dataset.type === 'poll') S.ui.pollN = S.ui.pollKind === 'custom' ? 3 : 2; render(); },
     closeSheet: () => { S.sheet = null; render(); },
-    'invite-link': shareInvite,
+    'invite-link': () => shareInvite(S.data),
+    // My squads ⋮ menu
+    hubInvite: (el) => { const d = S.hub[el.dataset.id]?.d; if (d) shareInvite(d); },
+    hubPersonal: async (el) => { const t = store.all()[el.dataset.id]?.token; toast(t && (await copyText(`${location.origin}/s/${el.dataset.id}?t=${encodeURIComponent(t)}`)) ? 'Personal link copied. Open it on your other device.' : 'Couldn\'t copy. Try again.'); },
+    hubLeave: (el) => { const d = S.hub[el.dataset.id]?.d; if (d && confirm(`Leave ${d.name}? Your ride, roles and pledge will be cleared.`)) hubAct(el.dataset.id, 'me.leave', {}, `You left ${d.name}`); },
+    hubDelete: (el) => { const d = S.hub[el.dataset.id]?.d; if (d && confirm(`Delete "${d.name}" for everyone? The plan, polls, rides, money records and pickup spots are erased for good. This can't be undone.`)) hubAct(el.dataset.id, 'squad.delete', {}, 'Squad deleted'); },
+    forget: (el) => { if (confirm('Remove this squad from this device? You\'ll need your personal link to get back in.')) { store.drop(el.dataset.id); delete S.hub[el.dataset.id]; S.sheet = null; render(); } },
     personal: async () => toast((await copyText(`${location.origin}/s/${S.data.id}?t=${encodeURIComponent(S.token)}`)) ? 'Personal link copied. Open it on your other device.' : 'Couldn\'t copy. Try again.'),
     ics: () => downloadIcs(),
     leave: () => { if (confirm(`Leave ${S.data.name}? Your ride, roles and pledge will be cleared.`)) act('me.leave'); },
@@ -1130,6 +1311,17 @@
         await refresh(); startLive();
         toast('You\'re in.');
       } catch (e) { toast(e.message, true); }
+    },
+    async rename(f, form) {
+      const id = form.dataset.id;
+      const ok = S.route === 'squad' ? await act('squad.rename', { name: f.name }, 'Renamed') : await hubAct(id, 'squad.rename', { name: f.name }, 'Renamed');
+      if (ok) { delete S.drafts['rename.' + id]; S.ui.open['rename.' + id] = false; render(); }
+    },
+    joinLink(f) {
+      let u; try { u = new URL(String(f.url).trim(), location.origin); } catch {}
+      const m = u && u.pathname.match(/^\/s\/([\w-]+)$/);
+      if (!m || !(u.searchParams.get('k') || u.searchParams.get('t'))) return toast('That doesn\'t look like a Squadup invite link.', true);
+      location.href = `/s/${m[1]}?${u.searchParams.get('k') ? 'k=' + encodeURIComponent(u.searchParams.get('k')) : 't=' + encodeURIComponent(u.searchParams.get('t'))}`;
     },
     async plan(f) { if (await act('plan.update', f, 'Plan saved')) { S.ui.editPlan = false; clearDrafts('plan.'); render(); } },
     async sched(f) { if (await act('sched.add', f)) { clearDrafts('sched.'); render(); } },
