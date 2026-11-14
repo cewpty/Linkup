@@ -59,9 +59,10 @@ npx wrangler dev
 
 ## Deploy
 
+**It deploys automatically.** This repo is connected to Cloudflare (Workers Builds), so every push to `main` builds and deploys the live site within a minute or two. Teammates just push.
+
+To deploy by hand instead:
 ```bash
 npx wrangler login
 npm run deploy
 ```
-
-This prints a `https://linkup.<your-subdomain>.workers.dev` link.
