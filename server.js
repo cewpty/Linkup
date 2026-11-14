@@ -5,7 +5,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { rid, createSquad, createDemo, handle, findByToken, UserError } from './src/core.js';
+import { rid, createSquad, createDemo, handle, findByToken, UserError, prune, expiresAt, GONE } from './src/core.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
@@ -34,6 +34,23 @@ function broadcast(sq) {
   for (const res of listeners.get(sq.id) || []) res.write(`data: ${sq.version}\n\n`);
 }
 setInterval(() => { for (const set of listeners.values()) for (const res of set) res.write(': ping\n\n'); }, 25000);
+
+function deleteSquad(id) {
+  delete db.squads[id];
+  for (const res of listeners.get(id) || []) res.end();
+  listeners.delete(id);
+  save();
+}
+
+// cleanup sweep: delete expired squads and old pickup spots every 5 minutes
+function sweep() {
+  for (const sq of Object.values(db.squads)) {
+    if (Date.now() >= expiresAt(sq)) deleteSquad(sq.id);
+    else if (prune(sq)) { sq.version++; save(); broadcast(sq); }
+  }
+}
+sweep();
+setInterval(sweep, 5 * 60 * 1000);
 
 const send = (res, code, body) => {
   res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -76,7 +93,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     const sq = parts[1] === 'squads' && parts[2] ? db.squads[parts[2]] : null;
-    if (!sq) return send(res, 404, { error: 'This squad does not exist (or the link is wrong).' });
+    if (!sq) return send(res, 404, { error: GONE });
     const token = req.headers['x-member-token'] || url.searchParams.get('t');
     const sub = parts[3] || '';
 
@@ -92,6 +109,7 @@ const server = http.createServer(async (req, res) => {
 
     const body = req.method === 'POST' ? await readBody(req) : {};
     const r = handle(sq, { method: req.method, sub, body, token, key: url.searchParams.get('k') });
+    if (r.deleted) { deleteSquad(sq.id); return send(res, r.status, r.body); }
     if (r.changed) { save(); broadcast(sq); }
     return send(res, r.status, r.body);
   } catch (e) {

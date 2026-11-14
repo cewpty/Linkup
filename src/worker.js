@@ -4,7 +4,7 @@
 // idle connections cost nothing on the free plan.
 
 import { DurableObject } from 'cloudflare:workers';
-import { rid, createSquad, createDemo, handle, findByToken, UserError } from './core.js';
+import { rid, createSquad, createDemo, handle, findByToken, UserError, prune, expiresAt, nextCleanup, GONE } from './core.js';
 
 const json = (status, body) => new Response(JSON.stringify(body), {
   status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
@@ -56,7 +56,31 @@ export class Squad extends DurableObject {
     return this.sq;
   }
 
-  async save() { await this.ctx.storage.put('sq', this.sq); }
+  // save, then set the cleanup timer for the next thing that needs deleting
+  async save() {
+    await this.ctx.storage.put('sq', this.sq);
+    await this.ctx.storage.setAlarm(nextCleanup(this.sq));
+  }
+
+  // delete the whole squad: storage, timer and live connections
+  async wipe() {
+    this.sq = null;
+    // tell open phones first (any message makes them refresh and see it's gone), then hang up
+    for (const ws of this.ctx.getWebSockets()) {
+      try { ws.send('deleted'); ws.close(4000, 'deleted'); } catch { /* already closed */ }
+    }
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+  }
+
+  // runs on its own when the cleanup timer fires, even if nobody has the app open
+  async alarm() {
+    const sq = await this.load();
+    if (!sq) return;
+    if (Date.now() >= expiresAt(sq)) return this.wipe();
+    if (prune(sq)) { sq.version++; this.broadcast(); }
+    await this.save();
+  }
 
   broadcast() {
     for (const ws of this.ctx.getWebSockets()) { try { ws.send(String(this.sq.version)); } catch { /* closed */ } }
@@ -76,7 +100,8 @@ export class Squad extends DurableObject {
       }
 
       const sq = await this.load();
-      if (!sq) return json(404, { error: 'This squad does not exist (or the link is wrong).' });
+      if (!sq) return json(404, { error: GONE });
+      if (Date.now() >= expiresAt(sq)) { await this.wipe(); return json(404, { error: GONE }); }
       const parts = url.pathname.split('/').filter(Boolean); // api, squads, id, sub?
       const sub = parts[3] || '';
       const token = request.headers.get('X-Member-Token') || url.searchParams.get('t');
@@ -92,6 +117,7 @@ export class Squad extends DurableObject {
 
       const body = request.method === 'POST' ? await readJson(request) : {};
       const r = handle(sq, { method: request.method, sub, body, token, key: url.searchParams.get('k') });
+      if (r.deleted) { await this.wipe(); return json(r.status, r.body); }
       if (r.changed) { await this.save(); this.broadcast(); }
       return json(r.status, r.body);
     } catch (e) {

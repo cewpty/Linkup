@@ -63,6 +63,50 @@ function releaseRiders(sq, driver) {
   }
 }
 
+// ---------- automatic deletion ----------
+const HOUR = 3600 * 1000, DAY = 24 * HOUR;
+export const PICKUP_TTL = 12 * HOUR; // a shared pickup spot is wiped 12h after it was shared
+
+const lastActive = (sq) => (sq.activity.length ? sq.activity[sq.activity.length - 1].at : sq.createdAt);
+
+// When the whole squad (and everything in it) gets deleted:
+// demo squads 2 days after anyone last used them; real squads 7 days after the
+// hangout date (or after the last activity, whichever is later); squads with no
+// date 30 days after the last activity.
+export function expiresAt(sq) {
+  const active = lastActive(sq);
+  if (sq.demo) return active + 2 * DAY;
+  const day = sq.plan.date ? Date.parse(sq.plan.date + 'T23:59:59Z') : NaN;
+  if (Number.isFinite(day)) return Math.max(day, active) + 7 * DAY;
+  return active + 30 * DAY;
+}
+
+// Wipes pickup spots that are older than PICKUP_TTL. Returns true if anything changed.
+export function prune(sq, t = now()) {
+  let changed = false;
+  for (const m of Object.values(sq.members)) {
+    if (m.ride.pickup && t - m.ride.pickup.at >= PICKUP_TTL) { m.ride.pickup = null; changed = true; }
+  }
+  return changed;
+}
+
+// The next moment something needs deleting (for the cleanup timer).
+export function nextCleanup(sq) {
+  let t = expiresAt(sq);
+  for (const m of Object.values(sq.members)) if (m.ride.pickup) t = Math.min(t, m.ride.pickup.at + PICKUP_TTL);
+  return t;
+}
+
+// Who may delete the whole squad: the Planner; with no Planner, whoever started
+// it; if they've left too, the longest-standing member.
+function canDelete(sq, me) {
+  const planner = roleHolder(sq, 'Planner');
+  if (planner) return planner.id === me.id;
+  if (sq.creatorId && sq.members[sq.creatorId]) return sq.creatorId === me.id;
+  const oldest = Object.values(sq.members).sort((a, b) => a.joinedAt - b.joinedAt)[0];
+  return !!oldest && oldest.id === me.id;
+}
+
 // ---------- create ----------
 function blankSquad(id, name, currency) {
   return {
@@ -80,6 +124,7 @@ export function createSquad(id, body) {
   const sq = blankSquad(id, name, body.currency);
   const m = newMember(you);
   sq.members[m.id] = m;
+  sq.creatorId = m.id;
   log(sq, `${you} started the squad`);
   return { sq, token: m.token };
 }
@@ -89,6 +134,7 @@ export function createSquad(id, body) {
 export function createDemo(id, body = {}) {
   const you = str(body.you, 30) || 'You';
   const sq = blankSquad(id, 'Demo: Saturday bowling 🎳', body.currency || '$');
+  sq.demo = true;
   const add = (name) => { const m = newMember(name); sq.members[m.id] = m; return m; };
   const t0 = now() - 1000 * 60 * 90;
   const tick = (mins) => t0 + mins * 60 * 1000;
@@ -131,6 +177,7 @@ export function createDemo(id, body = {}) {
     [55, 'Sam set the budget: $20 per person'], [60, 'Aisha logged spending: Lane deposit ($16)'],
   ].map(([m, t]) => ({ at: tick(m), text: t }));
   log(sq, `👋 ${me.name} joined`);
+  sq.creatorId = me.id;
   return { sq, token: me.token };
 }
 
@@ -152,6 +199,7 @@ export function view(sq, me) {
     id: sq.id, key: sq.key, name: sq.name, currency: sq.currency, createdAt: sq.createdAt, version: sq.version,
     plan: sq.plan, ideas: sq.ideas, roles: sq.roles, tasks: sq.tasks, info: sq.info, budget: sq.budget,
     expenses: sq.expenses, activity: sq.activity.slice(-40), members, me: me.id,
+    demo: !!sq.demo, expiresAt: expiresAt(sq), pickupTtl: PICKUP_TTL, canDelete: canDelete(sq, me),
   };
 }
 
@@ -404,9 +452,21 @@ const actions = {
 
 export const findByToken = (sq, token) => (token ? Object.values(sq.members).find((m) => m.token === token) : null);
 
+export const GONE = 'This squad doesn\'t exist anymore. It was deleted, or the link is wrong.';
+
 // Handles every per-squad request. `sub` is '' (read), 'join' or 'act'.
-// Returns { status, body, changed }.
-export function handle(sq, { method, sub, body = {}, token, key }) {
+// Returns { status, body, changed, deleted }.
+export function handle(sq, req) {
+  // expired squads are gone, even if the cleanup timer hasn't fired yet
+  if (now() >= expiresAt(sq)) return { status: 404, body: { error: GONE }, deleted: true };
+  const pruned = prune(sq);
+  if (pruned) sq.version++;
+  const r = handleInner(sq, req);
+  if (pruned) r.changed = true;
+  return r;
+}
+
+function handleInner(sq, { method, sub, body = {}, token, key }) {
   try {
     const me = findByToken(sq, token);
     if (sub === '' && method === 'GET') {
@@ -429,6 +489,10 @@ export function handle(sq, { method, sub, body = {}, token, key }) {
     }
     if (sub === 'act' && method === 'POST') {
       if (!me) return { status: 403, body: { error: 'You are not in this squad on this device.' } };
+      if (body.type === 'squad.delete') {
+        if (!canDelete(sq, me)) fail('Only the Planner (or whoever started the squad, if there is no Planner) can delete it.');
+        return { status: 200, body: { deleted: true }, deleted: true };
+      }
       const fn = actions[body.type] || fail('Unknown action.');
       fn(sq, me, body);
       sq.version++;

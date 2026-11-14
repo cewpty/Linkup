@@ -23,6 +23,12 @@ Linkup is one link per hangout. Everyone opens it, types their name and they're 
 ### Privacy and trust rules
 - **Invite-only.** You can't see or join a squad without the secret invite link.
 - **Pickup locations go only to your driver.** The server never sends them to anyone else, so nobody else can see them even by inspecting the page. A location is **deleted** the moment the driver marks you picked up.
+- **Data doesn't hang around.**
+  - A pickup spot is wiped 12 hours after it's shared, even if nobody marks the pickup.
+  - A whole squad deletes itself 7 days after the hangout date (or after 30 days of no activity if there's no date). Demo squads go after 2 days.
+  - The Planner can delete a squad for everyone at any time.
+  - A Durable Object alarm does all this on schedule, even when nobody has the app open.
+- **No request logs.** Cloudflare request logging is switched off, so member tokens never end up in logs.
 - **Money never moves through the app.** It only tracks who owes what and who has paid.
 - **Roles carry power.** Only the Planner can lock the plan or make a voted option official. Only the Treasurer can confirm payments or change the budget. Every change shows in the feed, so nobody can argue about it later.
 

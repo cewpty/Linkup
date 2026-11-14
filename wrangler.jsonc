@@ -13,5 +13,6 @@
     "bindings": [{ "name": "SQUADS", "class_name": "Squad" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Squad"] }],
-  "observability": { "enabled": true }
+  // Request logs are off on purpose: request addresses can carry member tokens.
+  "observability": { "enabled": false }
 }

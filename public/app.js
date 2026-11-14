@@ -118,7 +118,7 @@
     S.busy = true;
     try {
       const d = await api('POST', `/api/squads/${S.squadId}/act`, { type, ...params }, S.token);
-      if (d.left) { store.drop(S.squadId); stopLive(); location.href = '/'; return; }
+      if (d.left || d.deleted) { store.drop(S.squadId); stopLive(); location.href = '/'; return; }
       S.data = d; render();
       if (okMsg) toast(okMsg);
       return true;
@@ -509,6 +509,15 @@
       <button class="btn" data-act="personal">Copy my personal link</button>
       <hr class="hr">
       <button class="btn danger" data-act="leave">Leave this squad</button>
+    </section>
+    <section class="card">
+      <h2>🔒 Your data</h2>
+      <ul class="sub" style="margin:0;padding-left:18px;display:grid;gap:6px">
+        <li>Pickup spots are only shown to your driver. They're deleted when you're picked up, or ${Math.round(d.pickupTtl / 3600000)} hours after you share them, whichever comes first.</li>
+        <li>No emails, phone numbers or passwords are ever collected.</li>
+        <li>This whole squad deletes itself automatically on <b>${esc(new Date(d.expiresAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }))}</b>${d.demo ? ' (demo squads last 2 days after their last use)' : d.plan.date ? ' (a week after the hangout)' : ' (30 days after the last activity, or a week after the hangout once a date is set)'}.</li>
+      </ul>
+      ${d.canDelete ? '<button class="btn danger" data-act="deleteSquad">Delete this squad for everyone now</button>' : ''}
     </section>`;
   }
 
@@ -560,7 +569,7 @@
           <input type="text" name="text" data-keep="pickup.text" value="${esc(v('pickup.text', r.pickup?.text || ''))}" placeholder="e.g. Blue gate, 12 Lake Road" maxlength="300">
           <div class="row wrap-row"><button class="btn primary">Save spot</button><button type="button" class="btn" data-act="gps">📍 Use my current location</button></div>
         </form>
-        <p class="sub small">🔒 Only ${dr ? esc(dr.name) : 'the driver you ride with'} can see this. It's deleted once you're picked up.</p>`;
+        <p class="sub small">🔒 Only ${dr ? esc(dr.name) : 'the driver you ride with'} can see this. It's deleted once you're picked up, or after ${Math.round(S.data.pickupTtl / 3600000)} hours.</p>`;
       if (dr) {
         const st = r.riderState;
         mine = `
@@ -760,6 +769,10 @@
       toast((await copyText(url)) ? 'Personal link copied. Open it on your other device.' : url);
     },
     leave: () => { if (confirm(`Leave ${S.data.name}? Your ride, roles and pledge will be cleared.`)) act('me.leave'); },
+    deleteSquad: () => {
+      if (!confirm(`Delete "${S.data.name}" for everyone? The plan, rides, money records and everyone's pickup spots are erased for good. This can't be undone.`)) return;
+      act('squad.delete');
+    },
     status: (el) => act('me.status', { status: el.dataset.v }),
     editPlan: () => { S.ui.editPlan = true; clearDrafts('plan.'); render(); },
     cancelPlan: () => { S.ui.editPlan = false; clearDrafts('plan.'); render(); },
