@@ -1,10 +1,10 @@
-# Linkup
+# Squadup
 
 **Hangout planning without the group-chat chaos.**
 
 Planning a hangout in a group chat goes like this: 20 unrelated reels, the venue buried under 300 messages, someone waiting at home for a pickup nobody saw, and two people arguing about money afterwards.
 
-Linkup is one link per hangout. Everyone opens it, types their name and they're in. There are no accounts and no passwords.
+Squadup is one link per hangout. Everyone opens it, types their name and they're in. There are no accounts and no passwords.
 
 ### 👉 Live app: **https://linkup.nafasat253.workers.dev**
 
@@ -15,7 +15,7 @@ Linkup is one link per hangout. Everyone opens it, types their name and they're 
 | Tab | What's in it |
 |---|---|
 | **Plan** | Your own checklist (am I going, how am I getting there, what do I owe). The plan (venue, address, date, time, notes). Voting on places and times. An info board for prices and opening hours. A feed of every change. |
-| **Crew** | Who's going, maybe or out, and who hasn't answered. Invite link. Personal link for using Linkup on a second device. |
+| **Crew** | Who's going, maybe or out, and who hasn't answered. Invite link. Personal link for using Squadup on a second device. |
 | **Rides** | Drivers post their seats. Riders grab a seat and share a pickup spot, typed or GPS. The driver taps **"I'm outside"**, which shows a big alert on the rider's phone and vibrates it. Riders tap **"I'm ready"** so the driver isn't left waiting. |
 | **Jobs** | Planner, Info gatherer and Treasurer roles, plus custom ones. A shared to-do list with assignees. |
 | **Money** | Same amount each, or a group target with pledges. Each person taps "I've paid", then the **treasurer confirms it**. A spending log shows where every bit of money went. |

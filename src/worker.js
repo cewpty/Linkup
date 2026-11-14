@@ -1,4 +1,4 @@
-// Linkup on Cloudflare: a Worker serves the API, the files in /public are
+// Squadup on Cloudflare: a Worker serves the API, the files in /public are
 // served as static assets, and each squad lives in its own Durable Object
 // (its own little database). Live updates use hibernating WebSockets, so
 // idle connections cost nothing on the free plan.

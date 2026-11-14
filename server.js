@@ -1,4 +1,4 @@
-// Linkup: local development server. Zero dependencies: `node server.js`.
+// Squadup: local development server. Zero dependencies: `node server.js`.
 // In production the same logic runs on Cloudflare (src/worker.js).
 
 import http from 'node:http';
@@ -119,4 +119,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`Linkup running → http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Squadup running → http://localhost:${PORT}`));

@@ -1,4 +1,4 @@
-// Linkup core: all squad rules live here. Shared by the local Node server
+// Squadup core: all squad rules live here. Shared by the local Node server
 // (server.js) and the Cloudflare Worker (src/worker.js). No platform APIs.
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

@@ -1,4 +1,4 @@
-/* Linkup — front end (vanilla JS, no build step) */
+/* Squadup — front end (vanilla JS, no build step) */
 (() => {
   'use strict';
 
@@ -80,7 +80,8 @@
     rides: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16V11l2.2-4.4A2 2 0 0 1 9 5.5h6a2 2 0 0 1 1.8 1.1L19 11v5"/><path d="M3 16h18v2.5a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V18H7v.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M5 11h14"/><circle cx="7.5" cy="14" r=".6" fill="currentColor"/><circle cx="16.5" cy="14" r=".6" fill="currentColor"/></svg>',
     jobs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></svg>',
     money: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="3"/><path d="M2.5 10h19"/><circle cx="16.5" cy="14.5" r="1.3"/><path d="M6 6l9-3 1.5 3"/></svg>',
-    logo: '<svg viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="var(--accent)"/><circle cx="24" cy="32" r="10" fill="none" stroke="#fff" stroke-width="6"/><circle cx="40" cy="32" r="10" fill="none" stroke="#fff" stroke-width="6"/></svg>',
+    // Squadup logo: three friends huddled together
+    logo: '<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="var(--accent)"/><g fill="#fff" fill-opacity=".72"><circle cx="18" cy="25" r="6.5"/><path d="M6 48a12 12 0 0 1 24 0z"/><circle cx="46" cy="25" r="6.5"/><path d="M34 48a12 12 0 0 1 24 0z"/></g><g fill="#fff" stroke="var(--accent)" stroke-width="3"><circle cx="32" cy="23" r="8.5"/><path d="M16.5 51a15.5 15.5 0 0 1 31 0z"/></g></svg>',
   };
 
   // ---------- state ----------
@@ -232,7 +233,7 @@
       const el = app.querySelector(`[data-keep="${CSS.escape(focusKey)}"]`);
       if (el) { el.focus({ preventScroll: true }); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch {} }
     }
-    document.title = S.route === 'squad' && S.data ? `${S.data.name} · Linkup` : 'Linkup';
+    document.title = S.route === 'squad' && S.data ? `${S.data.name} · Squadup` : 'Squadup';
   }
 
   function viewHome() {
@@ -240,7 +241,7 @@
     return `
     <main class="wrap" style="padding-bottom:40px">
       <section class="hero">
-        <div class="logo">${icons.logo} Linkup</div>
+        <div class="logo">${icons.logo} Squadup</div>
         <h1>Hangouts without the <em>group-chat chaos</em>.</h1>
         <p>One link for the plan, who's coming, who's picking up who, who's doing what, and who's paid.</p>
       </section>
@@ -285,7 +286,7 @@
     const p = S.preview;
     return `
     <main class="wrap" style="padding-bottom:40px">
-      <section class="hero"><div class="logo">${icons.logo} Linkup</div>
+      <section class="hero"><div class="logo">${icons.logo} Squadup</div>
         <h1>You're invited to <em>${esc(p.name)}</em></h1>
         <p>${p.members.length ? esc(p.members.slice(0, 6).join(', ')) + (p.members.length > 6 ? ` +${p.members.length - 6} more` : '') + ' already joined.' : 'Be the first in.'}</p>
       </section>
@@ -302,7 +303,7 @@
   }
 
   function viewLost() {
-    return `<main class="wrap" style="padding-bottom:40px"><section class="hero"><div class="logo">${icons.logo} Linkup</div>
+    return `<main class="wrap" style="padding-bottom:40px"><section class="hero"><div class="logo">${icons.logo} Squadup</div>
       <h1>Can't open this squad</h1><p>${esc(S.lostMsg || '')}</p></section>
       <a class="btn primary" href="/">Start your own squad</a></main>`;
   }
@@ -681,7 +682,7 @@
       </form>`;
 
     return `
-    <p class="note">💡 Linkup doesn't move any money. It keeps track of who owes what and who's paid, so nobody can argue about it later. Hand the money to the treasurer however your group normally does.</p>
+    <p class="note">💡 Squadup doesn't move any money. It keeps track of who owes what and who's paid, so nobody can argue about it later. Hand the money to the treasurer however your group normally does.</p>
     <section class="card">
       <div class="card-head"><h2>Budget</h2>${treasurer ? `<span class="sub small">Treasurer: ${esc(treasurer.name)}</span>` : `<button class="btn sm" data-act="tab" data-tab="jobs">Pick a treasurer</button>`}</div>
       ${!b.amount || S.ui.editBudget ? (canSetBudget ? budgetForm : `<p class="empty">${esc(treasurer.name)} hasn't set the budget yet.</p>`) : `
@@ -760,7 +761,7 @@
     tab:(el) => { S.tab = el.dataset.tab; history.replaceState(null, '', '#' + S.tab); render(); window.scrollTo({ top: 0 }); },
     invite: async () => {
       const url = `${location.origin}/s/${S.data.id}?k=${encodeURIComponent(S.data.key)}`;
-      const textMsg = `Join "${S.data.name}" on Linkup. Plan, rides and money in one place:`;
+      const textMsg = `Join "${S.data.name}" on Squadup. Plan, rides and money in one place:`;
       if (navigator.share) { try { await navigator.share({ title: S.data.name, text: textMsg, url }); return; } catch (e) { if (e.name === 'AbortError') return; } }
       toast((await copyText(url)) ? 'Invite link copied. Paste it in the group chat.' : url);
     },
