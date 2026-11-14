@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "deploy": "npx wrangler deploy"
+    "deploy": "npx wrangler deploy && npm run deploy:pages",
+    "deploy:worker": "npx wrangler deploy",
+    "deploy:pages": "node scripts/build-pages.mjs && cd pages && npx wrangler pages deploy --branch main --commit-dirty=true"
   },
   "engines": {
     "node": ">=20"

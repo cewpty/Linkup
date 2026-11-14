@@ -6,7 +6,7 @@ Planning a hangout in a group chat goes like this: 20 unrelated reels, the venue
 
 Squadup is one link per hangout. Everyone opens it, types their name and they're in. There are no accounts and no passwords.
 
-### 👉 Live app: **https://linkup.nafasat253.workers.dev**
+### 👉 Live app: **https://squadup-app.pages.dev**
 
 **Try it:** open the live site and tap **"🎳 Try a demo squad"**. You land in a squad that already has five friends, a plan, cars and a budget.
 
@@ -34,7 +34,7 @@ Squadup is one link per hangout. Everyone opens it, types their name and they're
 
 ## How it's built
 
-It runs on **Cloudflare Workers**, on the free plan.
+It runs on **Cloudflare Pages + Workers**, on the free plan.
 
 - `public/`: the app itself, in plain HTML, CSS and JS. It's built for phones first, supports dark mode and needs no build step. Cloudflare serves it as static assets.
 - `src/worker.js`: the API. **Each squad is its own Durable Object**, a tiny database that lives at Cloudflare. Phones get live updates over WebSockets, so when a driver taps "I'm outside", the rider's screen changes instantly.
@@ -59,10 +59,15 @@ npx wrangler dev
 
 ## Deploy
 
-**It deploys automatically.** This repo is connected to Cloudflare (Workers Builds), so every push to `main` builds and deploys the live site within a minute or two. Teammates just push.
+There are two parts, and one command deploys both:
 
-To deploy by hand instead:
+| Part | Name on Cloudflare | Address |
+|---|---|---|
+| The app's public address (Pages): serves `public/` and passes `/api/*` to the Worker through a service binding (`pages/`) | `squadup-app` | https://squadup-app.pages.dev |
+| The backend (Worker + Durable Objects, `src/`) | `linkup` | https://linkup.nafasat253.workers.dev (same data, older link) |
+
 ```bash
 npx wrangler login
-npm run deploy
+npm run deploy          # Worker first, then the Pages site
 ```
+`npm run deploy:worker` and `npm run deploy:pages` deploy one part at a time.

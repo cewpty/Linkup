@@ -1,0 +1,10 @@
+// Squadup's public address: https://squadup-app.pages.dev
+// This Pages project serves the files in /public and hands every /api request
+// (including live-update WebSockets) to the "linkup" Worker, which holds the data.
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "squadup-app",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2025-09-01",
+  "services": [{ "binding": "API", "service": "linkup" }]
+}
